@@ -18,7 +18,7 @@ import com.escapegame.core.GameConfig
  */
 object TouchGamepadLayout {
 
-    enum class Control { DPAD_LEFT, DPAD_RIGHT, DPAD_UP, BUTTON_A, BUTTON_B, START, SELECT, MUTE, NONE }
+    enum class Control { DPAD_LEFT, DPAD_RIGHT, DPAD_UP, DPAD_DOWN, BUTTON_A, BUTTON_B, START, SELECT, MUTE, NONE }
 
     // Shell geometry: a wide, minimal bezel around a 4:3 landscape LCD;
     // the game world (1440x1080) fits it exactly.
@@ -75,7 +75,7 @@ object TouchGamepadLayout {
             return if (kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
                 if (dx < 0) Control.DPAD_LEFT else Control.DPAD_RIGHT
             } else {
-                if (dy < 0) Control.DPAD_UP else Control.NONE // down is unused
+                if (dy < 0) Control.DPAD_UP else Control.DPAD_DOWN
             }
         }
         return Control.NONE
