@@ -39,11 +39,14 @@ jobs:
                 issue_number: context.issue.number, state: 'closed'
               });
             };
-            const m = title.match(/^SCORE:\s*(\d+)-(\d+)\s+(story|endless)\s+(kvetch|baal_habos|masmid|gadol_hador)\s*$/i);
+            const m = title.match(/^SCORE:\s*(\d+)-(\d+)\s+(story|endless)\s+(kvetch|baal_habos|masmid|gadol_hador)(?:\s+([A-Za-z0-9_-]{1,20}))?\s*$/i);
             if (!m) {
-              await close('Invalid format. Expected: `SCORE: <code> <story|endless> <madreiga>` — the code is shown on the game-over and victory screens.');
+              await close('Invalid format. Expected: `SCORE: <code> <story|endless> <madreiga> [name]` — the code is shown on the game-over and victory screens.');
               return;
             }
+            // In-game auto-submissions carry the player handle in the title;
+            // manual submissions fall back to the issue author's login.
+            const playerName = m[5] || author;
             const score = parseInt(m[1], 10);
             const check = parseInt(m[2], 10);
             const expected = Number((BigInt(score) * 7919n + 5747n) % 99991n);
@@ -55,14 +58,14 @@ jobs:
             const data = JSON.parse(fs.readFileSync(path, 'utf8'));
             const mode = m[3].toLowerCase();
             // One entry per player per mode: keep only their best
-            const existing = data.entries.find(e => e.name === author && e.mode === mode);
+            const existing = data.entries.find(e => e.name === playerName && e.mode === mode);
             if (existing && existing.score >= score) {
               await close(`You already have ${existing.score} on the board for ${mode} — this ${score} doesn't beat it. Chazak v'ematz.`);
               return;
             }
-            data.entries = data.entries.filter(e => !(e.name === author && e.mode === mode));
+            data.entries = data.entries.filter(e => !(e.name === playerName && e.mode === mode));
             data.entries.push({
-              name: author,
+              name: playerName,
               score: score,
               mode: mode,
               difficulty: m[4].toUpperCase(),
@@ -72,7 +75,7 @@ jobs:
             data.entries = data.entries.slice(0, 50);
             fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
             core.exportVariable('SCORE_VALID', '1');
-            await close(`Score **${score}** (${mode}, ${m[4].toUpperCase()}) recorded for @${author}. Mamash a kiddush hashem.`);
+            await close(`Score **${score}** (${mode}, ${m[4].toUpperCase()}) recorded for ${playerName}. Mamash a kiddush hashem.`);
 
       - name: Commit updated leaderboard
         if: env.SCORE_VALID == '1'

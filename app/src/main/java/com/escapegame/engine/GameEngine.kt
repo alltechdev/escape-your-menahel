@@ -189,11 +189,12 @@ class GameEngine(
         }
     }
 
-    /** DOWN / 8: only meaningful on the menus. */
+    /** DOWN / 8: menu navigation, or the leaderboard from the title screen. */
     fun onMenuDown() {
         when (phase) {
             GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(1)
             GamePhase.MODE_SELECT -> moveModeSelection()
+            GamePhase.INTRO -> onLeaderboardKey()
             else -> Unit
         }
     }
@@ -224,6 +225,26 @@ class GameEngine(
      */
     private fun submitCode(): String =
         score.toString() + "-" + ((score.toLong() * 7919L + 5747L) % 99991L)
+
+    /** Fire-and-forget auto-submission; the game never waits on it. */
+    private fun submitRunScore() {
+        if (score <= 0) return
+        leaderboard.submitScore(
+            prefs.getPlayerName(),
+            score,
+            if (endlessMode) "endless" else "story",
+            difficulty.name
+        )
+    }
+
+    /** Status line for the end screens; everything degrades to a manual code. */
+    private fun leaderboardStatusLine(): String = when (leaderboard.submitState) {
+        LeaderboardClient.SubmitState.SENDING -> "Sending score to the global board..."
+        LeaderboardClient.SubmitState.OK -> "On the global board as ${prefs.getPlayerName()}!"
+        LeaderboardClient.SubmitState.FAILED ->
+            "Offline. Manual code: ${submitCode()} (see README)"
+        else -> "Leaderboard code: ${submitCode()} (see README)"
+    }
 
     /** A tap on a menu screen (world coordinates). */
     fun onMenuTap(x: Float, y: Float) {
@@ -307,6 +328,7 @@ class GameEngine(
 
     private fun startNewGame() {
         endlessSeed = Random.nextLong() // fresh bein hazmanim days every run
+        leaderboard.resetSubmitState()
         score = 0
         lives = difficulty.lives
         newBest = false
@@ -657,6 +679,7 @@ class GameEngine(
             if (newBest) highScore = score
             phase = GamePhase.GAME_OVER
             phaseFrames = 0
+            submitRunScore()
         } else {
             addFloatingText(
                 message,
@@ -698,6 +721,7 @@ class GameEngine(
             if (newBest) highScore = score
             phase = GamePhase.VICTORY
             phaseFrames = 0
+            submitRunScore()
         } else {
             loadLevel(levelIndex + 1)
         }
@@ -823,9 +847,11 @@ class GameEngine(
                 overlay.drawLeaderboard(canvas, leaderboard.latest(), leaderboard.hasFailed())
             GamePhase.LEVEL_INTRO -> overlay.drawLevelIntro(canvas, level, difficulty.label)
             GamePhase.PAUSED -> overlay.drawPaused(canvas)
-            GamePhase.GAME_OVER ->
-                overlay.drawGameOver(canvas, gameOverLine, score, highScore, newBest, submitCode())
-            GamePhase.VICTORY -> overlay.drawVictory(canvas, score, highScore, newBest, submitCode())
+            GamePhase.GAME_OVER -> overlay.drawGameOver(
+                canvas, gameOverLine, score, highScore, newBest, leaderboardStatusLine()
+            )
+            GamePhase.VICTORY ->
+                overlay.drawVictory(canvas, score, highScore, newBest, leaderboardStatusLine())
             GamePhase.PLAYING -> Unit
         }
     }

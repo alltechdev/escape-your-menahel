@@ -24,13 +24,65 @@ data class LeaderboardEntry(
  */
 class LeaderboardClient {
 
+    /** Outcome of the automatic run-end submission. */
+    enum class SubmitState { IDLE, SENDING, OK, FAILED, UNAVAILABLE }
+
     private val result = AtomicReference<List<LeaderboardEntry>?>(null)
+
+    @Volatile
+    var submitState = SubmitState.IDLE
+        private set
 
     @Volatile
     private var failed = false
 
     @Volatile
     private var fetching = false
+
+    fun resetSubmitState() {
+        submitState = SubmitState.IDLE
+    }
+
+    /**
+     * Fires the score to the global board by opening a GitHub issue that the
+     * leaderboard workflow validates and records. Requires the build-time
+     * token; without it (or without internet) this quietly reports
+     * UNAVAILABLE/FAILED and the game carries on — the leaderboard is
+     * strictly optional.
+     */
+    fun submitScore(name: String, score: Int, mode: String, difficulty: String) {
+        val token = com.escapegame.BuildConfig.LEADERBOARD_TOKEN
+        if (token.isEmpty()) {
+            submitState = SubmitState.UNAVAILABLE
+            return
+        }
+        if (submitState == SubmitState.SENDING) return
+        submitState = SubmitState.SENDING
+        Thread({
+            try {
+                val checksum = (score.toLong() * 7919L + 5747L) % 99991L
+                val title = "SCORE: $score-$checksum $mode $difficulty $name"
+                val body = JSONObject()
+                    .put("title", title)
+                    .put("body", "Automated submission from the game.")
+                    .toString()
+                val connection = URL(SUBMIT_URL).openConnection() as HttpURLConnection
+                connection.connectTimeout = 8000
+                connection.readTimeout = 8000
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.setRequestProperty("Accept", "application/vnd.github+json")
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
+                connection.outputStream.use { it.write(body.toByteArray()) }
+                val code = connection.responseCode
+                connection.disconnect()
+                submitState = if (code in 200..299) SubmitState.OK else SubmitState.FAILED
+            } catch (e: Exception) {
+                submitState = SubmitState.FAILED
+            }
+        }, "LeaderboardSubmit").apply { isDaemon = true }.start()
+    }
 
     /** Most recently fetched entries, best first, or null if none yet. */
     fun latest(): List<LeaderboardEntry>? = result.get()
@@ -75,5 +127,7 @@ class LeaderboardClient {
     private companion object {
         const val LEADERBOARD_URL =
             "https://raw.githubusercontent.com/alltechdev/escape-your-menahel/main/leaderboard.json"
+        const val SUBMIT_URL =
+            "https://api.github.com/repos/alltechdev/escape-your-menahel/issues"
     }
 }

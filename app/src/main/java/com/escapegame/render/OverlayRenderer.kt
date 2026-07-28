@@ -132,7 +132,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText("2  or  UP — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
         canvas.drawText("5  or  OK — run + shoot felafel", w / 2, y, bodyPaint); y += lh
         canvas.drawText("P / MENU — mincha break (pause)", w / 2, y, bodyPaint); y += lh
-        canvas.drawText("0 / # — klezmer on/off · 7 — leaderboard", w / 2, y, bodyPaint); y += lh * 1.8f
+        canvas.drawText("0 / # — klezmer · 7 or DOWN — leaderboard", w / 2, y, bodyPaint); y += lh * 1.8f
 
         canvas.drawText("Grab rugelach. Chap the power-ups.", w / 2, y, bodyPaint); y += lh
         canvas.drawText("${Levels.all.size} levels between you and freedom.", w / 2, y, bodyPaint); y += lh * 1.6f
@@ -305,7 +305,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         score: Int,
         highScore: Int,
         isNewBest: Boolean,
-        submitCode: String
+        leaderboardLine: String
     ) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
         canvas.drawText("CAUGHT!", w / 2, h * 0.32f, redPaint)
@@ -317,7 +317,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
             canvas.drawText("Best: $highScore", w / 2, h * 0.61f, bodyPaint)
         }
         if (score > 0) {
-            canvas.drawText("Global leaderboard code: $submitCode", w / 2, h * 0.67f, finePrintPaint)
+            canvas.drawText(leaderboardLine, w / 2, h * 0.67f, finePrintPaint)
         }
         canvas.drawText(confirmPrompt("try again"), w / 2, h * 0.74f, accentPaint)
     }
@@ -327,7 +327,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         score: Int,
         highScore: Int,
         isNewBest: Boolean,
-        submitCode: String
+        leaderboardLine: String
     ) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
         if (compact) {
@@ -351,7 +351,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
             canvas.drawText("Best: $highScore", w / 2, h * 0.69f, bodyPaint)
         }
 
-        canvas.drawText("Global leaderboard code: $submitCode", w / 2, h * 0.745f, finePrintPaint)
+        canvas.drawText(leaderboardLine, w / 2, h * 0.745f, finePrintPaint)
         canvas.drawText(confirmPrompt("start another zman"), w / 2, h * 0.82f, accentPaint)
     }
 

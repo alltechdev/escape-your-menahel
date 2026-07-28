@@ -31,12 +31,16 @@ class GameView(context: Context, private val engine: GameEngine) :
     private val engineLock = Any()
     private var touchMode = false
 
+    // Hybrid phones (keypad/d-pad AND a touchscreen) are treated as pure
+    // keypad devices: no shell, no on-screen controls, touches ignored.
+    private val hasPhysicalDpad =
+        resources.configuration.navigation == Configuration.NAVIGATION_DPAD
+
     init {
         holder.addCallback(this)
         isFocusable = true
         // Touchscreen-only device (no physical d-pad)? Show the on-screen
         // gamepad from the start rather than waiting for the first tap.
-        val hasPhysicalDpad = resources.configuration.navigation == Configuration.NAVIGATION_DPAD
         val hasTouchscreen =
             context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
         if (!hasPhysicalDpad && hasTouchscreen) {
@@ -134,6 +138,8 @@ class GameView(context: Context, private val engine: GameEngine) :
     // ----------------------------------------------------------- touch input
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // Physical d-pad present: this is a keypad device, touch does nothing
+        if (hasPhysicalDpad) return true
         synchronized(engineLock) {
             if (!touchMode) {
                 touchMode = true
