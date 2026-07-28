@@ -185,6 +185,7 @@ class GameView(context: Context, private val engine: GameEngine) :
                 TouchGamepadLayout.Control.DPAD_RIGHT -> {
                     engine.onRight(true); engine.onRight(false)
                 }
+                TouchGamepadLayout.Control.DPAD_DOWN,
                 TouchGamepadLayout.Control.BUTTON_B -> engine.onMenuDown()
                 // A and START confirm the current selection
                 TouchGamepadLayout.Control.BUTTON_A,
@@ -211,11 +212,30 @@ class GameView(context: Context, private val engine: GameEngine) :
             // Overlay screens: taps confirm, EXCEPT on the d-pad or B - a
             // thumb resting on movement controls must never skip a screen
             when (control) {
+                // DOWN mirrors the keypad: leaderboard from the title screen
+                TouchGamepadLayout.Control.DPAD_DOWN -> engine.onMenuDown()
                 TouchGamepadLayout.Control.DPAD_LEFT,
                 TouchGamepadLayout.Control.DPAD_RIGHT,
                 TouchGamepadLayout.Control.DPAD_UP,
                 TouchGamepadLayout.Control.BUTTON_B -> Unit
-                else -> engine.onActionDown()
+                else -> {
+                    if (engine.phase == GamePhase.INTRO) {
+                        // Title-screen taps are position-sensitive (the
+                        // leaderboard button), so convert to world coords
+                        val shellX = worldX(event, pointerIndex)
+                        val shellY = worldY(event, pointerIndex)
+                        if (touchMode) {
+                            engine.onIntroTap(
+                                (shellX - TouchGamepadLayout.screenOffsetX) / TouchGamepadLayout.screenScale,
+                                (shellY - TouchGamepadLayout.screenOffsetY) / TouchGamepadLayout.screenScale
+                            )
+                        } else {
+                            engine.onIntroTap(shellX, shellY)
+                        }
+                    } else {
+                        engine.onActionDown()
+                    }
+                }
             }
             return
         }

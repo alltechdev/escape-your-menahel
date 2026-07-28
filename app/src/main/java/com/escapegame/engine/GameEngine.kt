@@ -253,6 +253,19 @@ class GameEngine(
     }
 
     /**
+     * A tap on the title screen (world coordinates): the leaderboard button
+     * opens the board, anywhere else starts the game.
+     */
+    fun onIntroTap(x: Float, y: Float) {
+        if (phase != GamePhase.INTRO) return
+        if (overlay.leaderboardButtonAt(x, y)) {
+            onLeaderboardKey()
+        } else {
+            onActionDown()
+        }
+    }
+
+    /**
      * A tap on a menu screen (world coordinates). Only a tap that actually
      * lands on a row selects and confirms it — misses do nothing, so stray
      * taps (e.g. on the shell) can't skip a menu.

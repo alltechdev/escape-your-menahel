@@ -94,6 +94,32 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
     }
     private val cardRect = RectF()
 
+    /** The tappable GLOBAL LEADERBOARD button on the title screen. */
+    private val leaderboardButtonRect = RectF()
+
+    init {
+        if (compact) {
+            leaderboardButtonRect.set(w * 0.24f, h * 0.905f, w * 0.76f, h * 0.968f)
+        } else {
+            leaderboardButtonRect.set(w * 0.18f, h * 0.895f, w * 0.82f, h * 0.952f)
+        }
+    }
+
+    /** True if the point is on the title screen's leaderboard button. */
+    fun leaderboardButtonAt(x: Float, y: Float): Boolean =
+        leaderboardButtonRect.contains(x, y)
+
+    private fun drawLeaderboardButton(canvas: Canvas, label: String) {
+        canvas.drawRoundRect(leaderboardButtonRect, 16f, 16f, cardPaint)
+        canvas.drawRoundRect(leaderboardButtonRect, 16f, 16f, cardStrokePaint)
+        canvas.drawText(
+            label,
+            leaderboardButtonRect.centerX(),
+            leaderboardButtonRect.centerY() + 11f,
+            accentPaint
+        )
+    }
+
     fun drawIntro(canvas: Canvas, highScore: Int, semichos: Int, escapes: Int) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
 
@@ -115,6 +141,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
                 )
             }
             canvas.drawText(confirmPrompt("start"), w / 2, h * 0.87f, accentPaint)
+            drawLeaderboardButton(canvas, "GLOBAL LEADERBOARD — TAP HERE")
             return
         }
 
@@ -142,8 +169,9 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         }
         canvas.drawText("Semichos earned: $semichos/5 · Escapes: $escapes", w / 2, y, bodyPaint)
 
-        canvas.drawText(confirmPrompt("start"), w / 2, h * 0.88f, accentPaint)
-        canvas.drawText("Est. 5747 · Accredited by absolutely nobody", w / 2, h * 0.93f, finePrintPaint)
+        canvas.drawText(confirmPrompt("start"), w / 2, h * 0.87f, accentPaint)
+        drawLeaderboardButton(canvas, "7 / DOWN — GLOBAL LEADERBOARD")
+        canvas.drawText("Est. 5747 · Accredited by absolutely nobody", w / 2, h * 0.978f, finePrintPaint)
     }
 
     fun drawDifficultySelect(canvas: Canvas, selected: Int) {
