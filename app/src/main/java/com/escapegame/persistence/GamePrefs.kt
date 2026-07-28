@@ -40,6 +40,13 @@ class GamePrefs(context: Context) {
 
     fun getCounter(name: String): Int = prefs.getInt("cnt_" + name, 0)
 
+    /** Stores [value] under [name] if it beats the stored value. */
+    fun submitCounterMax(name: String, value: Int) {
+        if (value > getCounter(name)) {
+            prefs.edit().putInt("cnt_" + name, value).apply()
+        }
+    }
+
     /** Increments a lifetime counter and returns the new value. */
     fun incrementCounter(name: String): Int {
         val value = getCounter(name) + 1

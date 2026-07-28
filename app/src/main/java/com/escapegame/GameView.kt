@@ -155,7 +155,7 @@ class GameView(context: Context, private val engine: GameEngine) :
             engine.toggleMute()
             return
         }
-        if (engine.phase == GamePhase.DIFFICULTY_SELECT) {
+        if (engine.phase == GamePhase.DIFFICULTY_SELECT || engine.phase == GamePhase.MODE_SELECT) {
             // Menu taps need game-world coordinates (inside the LCD in
             // touch mode, the whole screen otherwise)
             val shellX = worldX(event, pointerIndex)

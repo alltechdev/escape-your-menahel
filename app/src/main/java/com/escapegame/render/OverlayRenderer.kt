@@ -157,6 +157,44 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText(prompt, w / 2, h * 0.93f, accentPaint)
     }
 
+    fun drawModeSelect(canvas: Canvas, selected: Int, endlessBestDay: Int) {
+        canvas.drawRect(0f, 0f, w, h, dimPaint)
+        canvas.drawText("CHOOSE YOUR ZMAN", w / 2, h * 0.16f, headerPaint)
+
+        val labels = arrayOf("THE ESCAPE", "BEIN HAZMANIM")
+        val descriptions = arrayOf(
+            "The story: 18 levels to freedom.",
+            if (endlessBestDay > 0) "Endless days. Best so far: day $endlessBestDay."
+            else "Endless days, rising danger, no exit exam."
+        )
+        for (i in 0..1) {
+            val top = modeRowTop(i)
+            cardRect.set(w * 0.08f, top, w * 0.92f, top + modeRowHeight())
+            canvas.drawRoundRect(cardRect, 18f, 18f, cardPaint)
+            if (i == selected) canvas.drawRoundRect(cardRect, 18f, 18f, cardStrokePaint)
+            difficultyLabelPaint.color = if (i == selected) Color.YELLOW else Color.WHITE
+            canvas.drawText(labels[i], w / 2, top + modeRowHeight() * 0.42f, difficultyLabelPaint)
+            canvas.drawText(descriptions[i], w / 2, top + modeRowHeight() * 0.78f, difficultyDescPaint)
+        }
+
+        val prompt = if (touchMode) "Tap a zman to begin" else "2/8 or UP/DOWN choose · 5/OK begin"
+        canvas.drawText(prompt, w / 2, h * 0.85f, accentPaint)
+    }
+
+    /** Index of the mode row containing the point, or -1. */
+    fun modeRowAt(x: Float, y: Float): Int {
+        if (x < w * 0.08f || x > w * 0.92f) return -1
+        for (i in 0..1) {
+            val top = modeRowTop(i)
+            if (y >= top && y <= top + modeRowHeight()) return i
+        }
+        return -1
+    }
+
+    private fun modeRowTop(index: Int): Float = h * (0.28f + index * 0.22f)
+
+    private fun modeRowHeight(): Float = h * 0.16f
+
     /** Index of the difficulty row containing the point, or -1. */
     fun difficultyRowAt(x: Float, y: Float): Int {
         if (x < w * 0.08f || x > w * 0.92f) return -1

@@ -4,6 +4,7 @@ package com.escapegame.model
 enum class GamePhase {
     INTRO,
     DIFFICULTY_SELECT,
+    MODE_SELECT,
     LEVEL_INTRO,
     PLAYING,
     PAUSED,

@@ -560,6 +560,86 @@ object Levels {
         "Verdict: chutzpah in the first degree."
     )
 
+    /** Quips for procedurally generated bein hazmanim days. */
+    val endlessQuips: List<String> = listOf(
+        "You told your mother you're learning.",
+        "Technically the zman ended. Technically.",
+        "The Menahel doesn't believe in vacation.",
+        "Day count courtesy of the attendance sheet.",
+        "The mountains are lovely. The Menahel followed you there.",
+        "There is no bein hazmanim from the Menahel.",
+        "He found your bungalow colony.",
+        "Even the lifeguard is a mashgiach now."
+    )
+
+    /**
+     * Procedurally generates one day of Bein Hazmanim mode. Deterministic for
+     * a given (day, seed) so a mid-level world re-flow rebuilds the same
+     * layout. Difficulty ramps with the day count and never ends.
+     */
+    fun endless(day: Int, seed: Long): LevelDefinition {
+        val rng = kotlin.random.Random(day * 7919L + seed)
+        val tiers = floatArrayOf(T1, T2, T3, T4, T5)
+
+        val platforms = mutableListOf<PlatformSpec>()
+        val rugelach = mutableListOf<RugelachSpec>()
+        val count = 4 + rng.nextInt(4)
+        for (i in 0 until count) {
+            val fw = 0.14f + rng.nextFloat() * 0.08f
+            val fx = 0.04f + rng.nextFloat() * (0.9f - fw)
+            val fy = tiers[rng.nextInt(if (day < 3) 3 else tiers.size)]
+            platforms.add(PlatformSpec(fx, fy, fw))
+            if (rng.nextFloat() < 0.8f) {
+                rugelach.add(RugelachSpec(fx + fw / 2, fy - 0.04f))
+            }
+        }
+
+        val powerUps = mutableListOf<PowerUpSpec>()
+        if (rng.nextFloat() < 0.55f) {
+            val types = PowerUpType.values()
+            powerUps.add(
+                PowerUpSpec(
+                    0.05f + rng.nextFloat() * 0.85f,
+                    FLOOR_TOP - 0.045f,
+                    types[rng.nextInt(types.size)]
+                )
+            )
+        }
+
+        val patrollers = mutableListOf<PatrollerSpec>()
+        if (day >= 3 && rng.nextFloat() < 0.6f) {
+            val start = 0.1f + rng.nextFloat() * 0.4f
+            patrollers.add(PatrollerSpec(start, start + 0.3f, FLOOR_TOP))
+        }
+
+        val modifiers = mutableSetOf<Modifier>()
+        if (day >= 5) {
+            val roll = rng.nextFloat()
+            when {
+                roll < 0.20f -> modifiers.add(Modifier.SLIPPERY)
+                roll < 0.40f -> modifiers.add(Modifier.DARK)
+                roll < 0.55f -> modifiers.add(Modifier.WIND)
+            }
+            if (day >= 8 && rng.nextFloat() < 0.4f) {
+                modifiers.add(Modifier.ASSISTANT_MENAHEL)
+            }
+        }
+
+        val themes = LevelTheme.values()
+        return LevelDefinition(
+            number = day,
+            name = "Bein Hazmanim, Day $day",
+            quip = endlessQuips[rng.nextInt(endlessQuips.size)],
+            theme = themes[rng.nextInt(themes.size)],
+            menahelSpeed = (2.8f + day * 0.25f).coerceAtMost(8.5f),
+            platforms = platforms,
+            rugelach = rugelach,
+            powerUps = powerUps,
+            patrollers = patrollers,
+            modifiers = modifiers
+        )
+    }
+
     /** PA-system announcements that interrupt gameplay at random. */
     val paAnnouncements: List<String> = listOf(
         "PA: Mincha in the small beis medrash in 5 minutes.",

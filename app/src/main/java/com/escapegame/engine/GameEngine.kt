@@ -89,6 +89,9 @@ class GameEngine(
 
     private var difficulty = loadDifficulty()
     private var difficultySelection = 0
+    private var endlessMode = false
+    private var modeSelection = 0
+    private var endlessSeed = Random.nextLong()
 
     private fun loadDifficulty(): Difficulty = try {
         Difficulty.valueOf(prefs.getDifficultyName(Difficulty.BAAL_HABOS.name))
@@ -157,25 +160,45 @@ class GameEngine(
 
     fun onLeft(pressed: Boolean) {
         leftPressed = pressed
-        if (pressed && phase == GamePhase.DIFFICULTY_SELECT) moveDifficultySelection(-1)
+        if (!pressed) return
+        when (phase) {
+            GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(-1)
+            GamePhase.MODE_SELECT -> moveModeSelection()
+            else -> Unit
+        }
     }
 
     fun onRight(pressed: Boolean) {
         rightPressed = pressed
-        if (pressed && phase == GamePhase.DIFFICULTY_SELECT) moveDifficultySelection(1)
+        if (!pressed) return
+        when (phase) {
+            GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(1)
+            GamePhase.MODE_SELECT -> moveModeSelection()
+            else -> Unit
+        }
     }
 
     fun onJump() {
         when (phase) {
             GamePhase.PLAYING -> if (talmid.jump()) music.playSfx(Sfx.JUMP)
             GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(-1)
+            GamePhase.MODE_SELECT -> moveModeSelection()
             else -> Unit
         }
     }
 
-    /** DOWN / 8: only meaningful on the difficulty menu. */
+    /** DOWN / 8: only meaningful on the menus. */
     fun onMenuDown() {
-        if (phase == GamePhase.DIFFICULTY_SELECT) moveDifficultySelection(1)
+        when (phase) {
+            GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(1)
+            GamePhase.MODE_SELECT -> moveModeSelection()
+            else -> Unit
+        }
+    }
+
+    private fun moveModeSelection() {
+        modeSelection = 1 - modeSelection
+        music.playSfx(Sfx.PICKUP)
     }
 
     private fun moveDifficultySelection(delta: Int) {
@@ -184,12 +207,24 @@ class GameEngine(
         music.playSfx(Sfx.PICKUP)
     }
 
-    /** A tap on the difficulty screen (world coordinates). */
+    /** A tap on a menu screen (world coordinates). */
     fun onMenuTap(x: Float, y: Float) {
-        if (phase != GamePhase.DIFFICULTY_SELECT) return
-        val row = overlay.difficultyRowAt(x, y)
-        if (row >= 0) difficultySelection = row
-        confirmDifficulty()
+        when (phase) {
+            GamePhase.DIFFICULTY_SELECT -> {
+                val row = overlay.difficultyRowAt(x, y)
+                if (row >= 0) difficultySelection = row
+                difficulty = Difficulty.values()[difficultySelection]
+                prefs.setDifficultyName(difficulty.name)
+                phase = GamePhase.MODE_SELECT
+                phaseFrames = 0
+            }
+            GamePhase.MODE_SELECT -> {
+                val row = overlay.modeRowAt(x, y)
+                if (row >= 0) modeSelection = row
+                confirmMode()
+            }
+            else -> Unit
+        }
     }
 
     /** CENTER / 5 / OK pressed: the universal confirm-and-action button. */
@@ -200,7 +235,13 @@ class GameEngine(
                 phase = GamePhase.DIFFICULTY_SELECT
                 phaseFrames = 0
             }
-            GamePhase.DIFFICULTY_SELECT -> confirmDifficulty()
+            GamePhase.DIFFICULTY_SELECT -> {
+                difficulty = Difficulty.values()[difficultySelection]
+                prefs.setDifficultyName(difficulty.name)
+                phase = GamePhase.MODE_SELECT
+                phaseFrames = 0
+            }
+            GamePhase.MODE_SELECT -> confirmMode()
             GamePhase.LEVEL_INTRO -> beginPlay()
             GamePhase.PLAYING -> {
                 runPressed = true
@@ -240,13 +281,13 @@ class GameEngine(
 
     // ------------------------------------------------------------ lifecycle
 
-    private fun confirmDifficulty() {
-        difficulty = Difficulty.values()[difficultySelection]
-        prefs.setDifficultyName(difficulty.name)
+    private fun confirmMode() {
+        endlessMode = modeSelection == 1
         startNewGame()
     }
 
     private fun startNewGame() {
+        endlessSeed = Random.nextLong() // fresh bein hazmanim days every run
         score = 0
         lives = difficulty.lives
         newBest = false
@@ -292,7 +333,7 @@ class GameEngine(
 
     private fun buildLevel(index: Int) {
         levelIndex = index
-        level = Levels.all[index]
+        level = if (endlessMode) Levels.endless(index + 1, endlessSeed) else Levels.all[index]
 
         platforms.clear()
         for (spec in level.platforms) {
@@ -587,7 +628,12 @@ class GameEngine(
         lives--
         runLivesLost++
         if (lives <= 0) {
-            gameOverLine = Levels.gameOverLines[Random.nextInt(Levels.gameOverLines.size)]
+            gameOverLine = if (endlessMode) {
+                "You lasted ${level.number} day" +
+                    (if (level.number == 1) "" else "s") + " of bein hazmanim."
+            } else {
+                Levels.gameOverLines[Random.nextInt(Levels.gameOverLines.size)]
+            }
             newBest = prefs.submitScore(score)
             if (newBest) highScore = score
             phase = GamePhase.GAME_OVER
@@ -617,6 +663,12 @@ class GameEngine(
         if (seconds < 15) award(Achievement.ZRIZUS)
         if (rugelach.isNotEmpty() && rugelach.all { it.collected }) {
             award(Achievement.KIBUD_RUGELACH)
+        }
+
+        if (endlessMode) {
+            prefs.submitCounterMax("endless_best", level.number)
+            loadLevel(levelIndex + 1)
+            return
         }
 
         if (levelIndex + 1 >= Levels.all.size) {
@@ -746,6 +798,8 @@ class GameEngine(
                 prefs.getCounter("escapes")
             )
             GamePhase.DIFFICULTY_SELECT -> overlay.drawDifficultySelect(canvas, difficultySelection)
+            GamePhase.MODE_SELECT ->
+                overlay.drawModeSelect(canvas, modeSelection, prefs.getCounter("endless_best"))
             GamePhase.LEVEL_INTRO -> overlay.drawLevelIntro(canvas, level, difficulty.label)
             GamePhase.PAUSED -> overlay.drawPaused(canvas)
             GamePhase.GAME_OVER -> overlay.drawGameOver(canvas, gameOverLine, score, highScore, newBest)

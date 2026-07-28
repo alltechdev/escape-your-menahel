@@ -27,6 +27,9 @@ between you and the 4:15 bus to freedom.
 - **Rugelach collectibles**, score with time bonuses, 3 lives (displayed as
   black hats, naturally), and a persistent high score
 - **Pause = Mincha Break**
+- **Bein Hazmanim mode** — endless procedurally generated days with rising
+  danger, random modifiers, and a persistent best-day record. There is no
+  bein hazmanim from the Menahel
 - **Choose your madreiga** — four difficulties: KVETCH (5 hats, slower
   Menahel), BAAL HABOS (the standard chinuch experience), MASMID (2 hats,
   faster, early chalk), and GADOL HADOR (1 hat, everything faster,
