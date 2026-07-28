@@ -6,53 +6,51 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import com.escapegame.core.GameConfig
 
 /**
- * Game Boy-style on-screen gamepad for touchscreen-only devices: a cross
- * d-pad bottom-left, diagonal B/A buttons bottom-right, and a START pill for
- * pause. Never shown on devices with a physical keypad/d-pad — [hit] and the
- * renderer are only used once the view enables touch mode.
+ * Handheld-console control layout for touchscreen-only devices: a cross
+ * d-pad bottom-left, diagonal B/A buttons bottom-right, SELECT/START pills,
+ * with the game's landscape LCD up top. Never shown on devices with a
+ * physical keypad/d-pad.
  *
- * All geometry is in virtual world coordinates so the pad scales with the
- * rest of the game.
+ * All geometry is in shell coordinates (the portrait 1080x1920 space).
  */
 object TouchGamepadLayout {
 
-    enum class Control { DPAD_LEFT, DPAD_RIGHT, DPAD_UP, BUTTON_A, BUTTON_B, START, NONE }
+    enum class Control { DPAD_LEFT, DPAD_RIGHT, DPAD_UP, BUTTON_A, BUTTON_B, START, SELECT, NONE }
 
-    // Handheld-shell geometry: the game renders inside the "LCD" up top,
-    // the controls live on the body below it.
-    val screenBezel = RectF(70f, 50f, 1010f, 1380f)
-    val screenLcd = RectF(140f, 150f, 940f, 1330f)
+    // Shell geometry: a wide, minimal bezel around a 4:3 landscape LCD;
+    // the game world (1440x1080) fits it exactly.
+    val screenBezel = RectF(40f, 70f, 1040f, 920f)
+    val screenLcd = RectF(90f, 120f, 990f, 795f)
 
-    /** Uniform scale that fits the virtual world inside the LCD. */
+    /** Uniform scale that fits the landscape world inside the LCD. */
     val screenScale: Float = kotlin.math.min(
-        screenLcd.width() / com.escapegame.core.GameConfig.WORLD_WIDTH,
-        screenLcd.height() / com.escapegame.core.GameConfig.WORLD_HEIGHT
+        screenLcd.width() / GameConfig.LANDSCAPE_WORLD_WIDTH,
+        screenLcd.height() / GameConfig.LANDSCAPE_WORLD_HEIGHT
     )
     val screenOffsetX: Float =
-        screenLcd.left + (screenLcd.width() - com.escapegame.core.GameConfig.WORLD_WIDTH * screenScale) / 2
+        screenLcd.left + (screenLcd.width() - GameConfig.LANDSCAPE_WORLD_WIDTH * screenScale) / 2
     val screenOffsetY: Float =
-        screenLcd.top + (screenLcd.height() - com.escapegame.core.GameConfig.WORLD_HEIGHT * screenScale) / 2
+        screenLcd.top + (screenLcd.height() - GameConfig.LANDSCAPE_WORLD_HEIGHT * screenScale) / 2
 
     // D-pad cross
-    const val DPAD_CX = 215f
-    const val DPAD_CY = 1600f
-    const val DPAD_ARM = 175f
-    const val DPAD_THICK = 115f
+    const val DPAD_CX = 235f
+    const val DPAD_CY = 1235f
+    const val DPAD_ARM = 165f
+    const val DPAD_THICK = 110f
 
-    // Buttons (Game Boy diagonal: A upper-right of B)
-    const val A_CX = 935f
-    const val A_CY = 1520f
-    const val B_CX = 715f
-    const val B_CY = 1660f
-    const val BUTTON_RADIUS = 95f
+    // Buttons (diagonal: A upper-right of B)
+    const val A_CX = 900f
+    const val A_CY = 1200f
+    const val B_CX = 660f
+    const val B_CY = 1310f
+    const val BUTTON_RADIUS = 92f
 
-    // START pill
-    const val START_LEFT = 440f
-    const val START_TOP = 1810f
-    const val START_RIGHT = 640f
-    const val START_BOTTOM = 1870f
+    // SELECT / START pills
+    val selectRect = RectF(350f, 1520f, 520f, 1578f)
+    val startRect = RectF(560f, 1520f, 730f, 1578f)
 
     fun hit(x: Float, y: Float): Control {
         var dx = x - A_CX
@@ -61,7 +59,8 @@ object TouchGamepadLayout {
         dx = x - B_CX
         dy = y - B_CY
         if (dx * dx + dy * dy <= BUTTON_RADIUS * BUTTON_RADIUS) return Control.BUTTON_B
-        if (x in START_LEFT..START_RIGHT && y in START_TOP..START_BOTTOM) return Control.START
+        if (startRect.contains(x, y)) return Control.START
+        if (selectRect.contains(x, y)) return Control.SELECT
 
         // D-pad: inside the cross's bounding box, pick the dominant axis
         dx = x - DPAD_CX
@@ -79,36 +78,39 @@ object TouchGamepadLayout {
     }
 }
 
-/** Draws the touch gamepad. Only invoked when touch mode is active. */
+/** Draws the touch controls on the shell body. */
 class TouchGamepadRenderer {
 
-    private val padPaint = Paint().apply {
-        color = Color.argb(150, 35, 35, 40)
-        style = Paint.Style.FILL
-    }
+    private val padPaint = Paint().apply { color = Color.rgb(35, 35, 45); style = Paint.Style.FILL }
     private val padEdgePaint = Paint().apply {
-        color = Color.argb(180, 210, 210, 215)
+        color = Color.rgb(90, 75, 15)
         strokeWidth = 4f
         style = Paint.Style.STROKE
     }
     private val buttonPaint = Paint().apply {
-        color = Color.argb(170, 150, 30, 70) // classic burgundy
+        color = Color.rgb(150, 30, 70) // classic burgundy
         style = Paint.Style.FILL
     }
     private val buttonTextPaint = Paint().apply {
-        color = Color.argb(230, 255, 255, 255)
-        textSize = 56f
+        color = Color.argb(235, 255, 255, 255)
+        textSize = 54f
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    private val pillTextPaint = Paint().apply {
+        color = Color.rgb(80, 62, 10)
+        textSize = 27f
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
     private val captionPaint = Paint().apply {
-        color = Color.argb(200, 60, 60, 65)
+        color = Color.rgb(110, 85, 12)
         textSize = 26f
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
     private val arrowPaint = Paint().apply {
-        color = Color.argb(180, 220, 220, 225)
+        color = Color.rgb(190, 190, 200)
         style = Paint.Style.FILL
     }
     private val horizontalRect = RectF(
@@ -123,12 +125,6 @@ class TouchGamepadRenderer {
         TouchGamepadLayout.DPAD_CX + TouchGamepadLayout.DPAD_THICK / 2,
         TouchGamepadLayout.DPAD_CY + TouchGamepadLayout.DPAD_ARM
     )
-    private val startRect = RectF(
-        TouchGamepadLayout.START_LEFT,
-        TouchGamepadLayout.START_TOP,
-        TouchGamepadLayout.START_RIGHT,
-        TouchGamepadLayout.START_BOTTOM
-    )
     private val arrowPath = Path()
 
     fun draw(canvas: Canvas) {
@@ -137,44 +133,54 @@ class TouchGamepadRenderer {
         val arm = TouchGamepadLayout.DPAD_ARM
 
         // D-pad cross
-        canvas.drawRoundRect(horizontalRect, 18f, 18f, padPaint)
-        canvas.drawRoundRect(verticalRect, 18f, 18f, padPaint)
-        canvas.drawRoundRect(horizontalRect, 18f, 18f, padEdgePaint)
-        canvas.drawRoundRect(verticalRect, 18f, 18f, padEdgePaint)
-        drawArrow(canvas, cx - arm + 34f, cy, -1f, 0f)
-        drawArrow(canvas, cx + arm - 34f, cy, 1f, 0f)
-        drawArrow(canvas, cx, cy - arm + 34f, 0f, -1f)
+        canvas.drawRoundRect(horizontalRect, 16f, 16f, padPaint)
+        canvas.drawRoundRect(verticalRect, 16f, 16f, padPaint)
+        drawArrow(canvas, cx - arm + 32f, cy, -1f, 0f)
+        drawArrow(canvas, cx + arm - 32f, cy, 1f, 0f)
+        drawArrow(canvas, cx, cy - arm + 32f, 0f, -1f)
 
         // B then A (A overlaps on top, like the real thing)
         canvas.drawCircle(TouchGamepadLayout.B_CX, TouchGamepadLayout.B_CY, TouchGamepadLayout.BUTTON_RADIUS, buttonPaint)
-        canvas.drawCircle(TouchGamepadLayout.B_CX, TouchGamepadLayout.B_CY, TouchGamepadLayout.BUTTON_RADIUS, padEdgePaint)
-        canvas.drawText("B", TouchGamepadLayout.B_CX, TouchGamepadLayout.B_CY + 20f, buttonTextPaint)
+        canvas.drawText("B", TouchGamepadLayout.B_CX, TouchGamepadLayout.B_CY + 19f, buttonTextPaint)
         canvas.drawCircle(TouchGamepadLayout.A_CX, TouchGamepadLayout.A_CY, TouchGamepadLayout.BUTTON_RADIUS, buttonPaint)
-        canvas.drawCircle(TouchGamepadLayout.A_CX, TouchGamepadLayout.A_CY, TouchGamepadLayout.BUTTON_RADIUS, padEdgePaint)
-        canvas.drawText("A", TouchGamepadLayout.A_CX, TouchGamepadLayout.A_CY + 20f, buttonTextPaint)
+        canvas.drawText("A", TouchGamepadLayout.A_CX, TouchGamepadLayout.A_CY + 19f, buttonTextPaint)
         canvas.drawText(
             "JUMP",
             TouchGamepadLayout.B_CX,
-            TouchGamepadLayout.B_CY + TouchGamepadLayout.BUTTON_RADIUS + 32f,
+            TouchGamepadLayout.B_CY + TouchGamepadLayout.BUTTON_RADIUS + 34f,
             captionPaint
         )
         canvas.drawText(
             "RUN + FELAFEL",
             TouchGamepadLayout.A_CX,
-            TouchGamepadLayout.A_CY - TouchGamepadLayout.BUTTON_RADIUS - 14f,
+            TouchGamepadLayout.A_CY - TouchGamepadLayout.BUTTON_RADIUS - 16f,
             captionPaint
         )
 
-        // START pill
-        canvas.drawRoundRect(startRect, 30f, 30f, padPaint)
-        canvas.drawRoundRect(startRect, 30f, 30f, padEdgePaint)
-        buttonTextPaint.textSize = 30f
-        canvas.drawText("START", startRect.centerX(), startRect.centerY() + 11f, buttonTextPaint)
-        buttonTextPaint.textSize = 56f
+        // SELECT / START pills
+        canvas.drawRoundRect(TouchGamepadLayout.selectRect, 29f, 29f, padPaint)
+        canvas.drawRoundRect(TouchGamepadLayout.startRect, 29f, 29f, padPaint)
+        canvas.drawRoundRect(TouchGamepadLayout.selectRect, 29f, 29f, padEdgePaint)
+        canvas.drawRoundRect(TouchGamepadLayout.startRect, 29f, 29f, padEdgePaint)
+        buttonTextPaint.textSize = 27f
+        canvas.drawText(
+            "SELECT",
+            TouchGamepadLayout.selectRect.centerX(),
+            TouchGamepadLayout.selectRect.centerY() + 10f,
+            buttonTextPaint
+        )
+        canvas.drawText(
+            "START",
+            TouchGamepadLayout.startRect.centerX(),
+            TouchGamepadLayout.startRect.centerY() + 10f,
+            buttonTextPaint
+        )
+        buttonTextPaint.textSize = 54f
+        canvas.drawText("MINCHA BREAK (PAUSE)", 540f, 1640f, pillTextPaint)
     }
 
     private fun drawArrow(canvas: Canvas, tipX: Float, tipY: Float, dirX: Float, dirY: Float) {
-        val size = 26f
+        val size = 25f
         arrowPath.reset()
         arrowPath.moveTo(tipX + dirX * size, tipY + dirY * size)
         // Perpendicular base corners

@@ -10,13 +10,12 @@ import com.escapegame.model.Platform
 
 /**
  * Draws the per-theme scenery, the platforms, and the exit door.
- * Everything is drawn in virtual world coordinates.
+ * Everything is drawn in virtual world coordinates; construct with the
+ * active world's dimensions (portrait fullscreen or landscape LCD).
  */
-class BackgroundRenderer {
+class BackgroundRenderer(private val w: Float, private val h: Float) {
 
-    private val w = GameConfig.WORLD_WIDTH
-    private val h = GameConfig.WORLD_HEIGHT
-    private val floorTop = h - GameConfig.FLOOR_HEIGHT
+    private val floorTop = h * GameConfig.FLOOR_TOP_FRACTION
 
     private val fillPaint = Paint().apply { style = Paint.Style.FILL }
     private val strokePaint = Paint().apply { style = Paint.Style.STROKE; strokeWidth = 3f }

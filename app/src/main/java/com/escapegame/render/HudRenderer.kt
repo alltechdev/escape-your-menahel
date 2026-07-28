@@ -3,7 +3,6 @@ package com.escapegame.render
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import com.escapegame.core.GameConfig
 import com.escapegame.entities.Talmid
 import com.escapegame.model.LevelDefinition
 
@@ -11,9 +10,7 @@ import com.escapegame.model.LevelDefinition
  * In-game heads-up display: score, high score, level name, remaining lives
  * (drawn as little black hats, naturally), and active power-up timers.
  */
-class HudRenderer {
-
-    private val w = GameConfig.WORLD_WIDTH
+class HudRenderer(private val w: Float) {
 
     private val textPaint = Paint().apply {
         color = Color.BLACK
