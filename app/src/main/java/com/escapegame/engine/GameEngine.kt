@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import com.escapegame.core.GameConfig
+import com.escapegame.entities.Chalk
 import com.escapegame.entities.FelafelBall
 import com.escapegame.entities.Mashgiach
 import com.escapegame.entities.Menahel
@@ -12,6 +13,7 @@ import com.escapegame.entities.PowerUp
 import com.escapegame.entities.Rugelach
 import com.escapegame.entities.Talmid
 import com.escapegame.levels.Levels
+import com.escapegame.model.Achievement
 import com.escapegame.model.GamePhase
 import com.escapegame.model.Modifier
 import com.escapegame.model.LevelDefinition
@@ -57,6 +59,7 @@ class GameEngine(
     private val mashgichim = mutableListOf<Mashgiach>()
     private val platforms = mutableListOf<Platform>()
     private val felafelBalls = mutableListOf<FelafelBall>()
+    private val chalks = mutableListOf<Chalk>()
     private val rugelach = mutableListOf<Rugelach>()
     private val powerUps = mutableListOf<PowerUp>()
     private val floatingTexts = mutableListOf<FloatingText>()
@@ -69,6 +72,12 @@ class GameEngine(
     private var phaseFrames = 0
     /** Frames until the van leaves without you; -1 when the level has no timer. */
     private var vanFrames = -1
+    private var chalkCooldown = 300
+    private var runLivesLost = 0
+    // PA announcement state
+    private var paCooldown = 1600
+    private var paText: String? = null
+    private var paFrames = 0
     private var highScore = prefs.getHighScore()
     private var newBest = false
     private var gameOverLine = Levels.gameOverLines.first()
@@ -122,6 +131,16 @@ class GameEngine(
         color = Color.argb(233, 5, 5, 14)
         style = Paint.Style.STROKE
         strokeWidth = 4200f
+    }
+    private val paBannerPaint = Paint().apply {
+        color = Color.argb(190, 20, 20, 30)
+        style = Paint.Style.FILL
+    }
+    private val paTextPaint = Paint().apply {
+        color = Color.rgb(255, 240, 180)
+        textSize = 26f
+        textAlign = Paint.Align.CENTER
+        style = Paint.Style.FILL
     }
 
     // ---------------------------------------------------------------- input
@@ -187,6 +206,7 @@ class GameEngine(
         score = 0
         lives = GameConfig.STARTING_LIVES
         newBest = false
+        runLivesLost = 0
         talmid.clearEffects()
         loadLevel(0)
     }
@@ -280,6 +300,10 @@ class GameEngine(
             if (Modifier.SLIPPERY in level.modifiers) 0.975f else GameConfig.PLAYER_FRICTION
         talmid.windEnabled = Modifier.WIND in level.modifiers
         vanFrames = level.timeLimitSeconds?.times(60) ?: -1
+        chalks.clear()
+        chalkCooldown = 300 + Random.nextInt(180)
+        paText = null
+        paCooldown = 1200 + Random.nextInt(1200)
 
         levelFrames = 0
         phaseFrames = 0
@@ -328,11 +352,58 @@ class GameEngine(
             }
         }
 
+        updateChalk()
+        updateAnnouncements()
         updateFelafel()
         updatePickups()
         updateFloatingTexts()
         checkCatches()
         checkExit()
+    }
+
+    /** From level 10 the Menahel throws chalk with decades-honed accuracy. */
+    private fun updateChalk() {
+        if (level.number >= 10 && !menahel.isStunned) {
+            chalkCooldown--
+            if (chalkCooldown <= 0) {
+                chalkCooldown = 240 + Random.nextInt(200)
+                val direction = if (talmid.centerX > menahel.centerX) 1f else -1f
+                chalks.add(Chalk(menahel.centerX, menahel.y, direction * (6f + Random.nextFloat() * 3f)))
+            }
+        }
+        val iterator = chalks.iterator()
+        while (iterator.hasNext()) {
+            val chalk = iterator.next()
+            chalk.update(worldWidth, floorTop)
+            if (!chalk.active) {
+                iterator.remove()
+                continue
+            }
+            if (!talmid.isInvincible && talmid.mussarFrames == 0 &&
+                chalk.hits(talmid.centerX, talmid.centerY, 42f)
+            ) {
+                talmid.receiveMussar()
+                music.playSfx(Sfx.STUN)
+                addFloatingText("GOT MUSSAR'D! Slowed!", talmid.centerX, talmid.y - 70f, Color.rgb(180, 60, 60))
+                iterator.remove()
+            }
+        }
+    }
+
+    private fun updateAnnouncements() {
+        if (paFrames > 0) {
+            paFrames--
+            if (paFrames == 0) {
+                paText = null
+                paCooldown = 1500 + Random.nextInt(1200)
+            }
+        } else {
+            paCooldown--
+            if (paCooldown <= 0) {
+                paText = Levels.paAnnouncements[Random.nextInt(Levels.paAnnouncements.size)]
+                paFrames = 300
+            }
+        }
     }
 
     private fun updateFelafel() {
@@ -346,7 +417,7 @@ class GameEngine(
             }
             if (ball.hits(menahel.centerX, menahel.centerY, GameConfig.MENAHEL_CATCH_DISTANCE)) {
                 menahel.stun()
-                music.playSfx(Sfx.STUN)
+                recordStun()
                 addFloatingText("BULLSEYE!", menahel.centerX, menahel.y - 40f, Color.rgb(255, 160, 40))
                 iterator.remove()
                 continue
@@ -357,7 +428,7 @@ class GameEngine(
                     ball.hits(a.centerX, a.centerY, GameConfig.MENAHEL_CATCH_DISTANCE)
                 ) {
                     a.stun()
-                    music.playSfx(Sfx.STUN)
+                    recordStun()
                     addFloatingText("Also him!", a.centerX, a.y - 40f, Color.rgb(255, 160, 40))
                     hitAssistant = true
                     break
@@ -373,7 +444,7 @@ class GameEngine(
                     ball.hits(m.centerX, m.centerY, GameConfig.MASHGIACH_CATCH_DISTANCE)
                 ) {
                     m.stun()
-                    music.playSfx(Sfx.STUN)
+                    recordStun()
                     addFloatingText("Lost his place!", m.centerX, m.y - 40f, Color.rgb(255, 160, 40))
                     hitPatroller = true
                     break
@@ -464,6 +535,7 @@ class GameEngine(
     private fun loseLife(message: String) {
         music.playSfx(Sfx.CAUGHT)
         lives--
+        runLivesLost++
         if (lives <= 0) {
             gameOverLine = Levels.gameOverLines[Random.nextInt(Levels.gameOverLines.size)]
             newBest = prefs.submitScore(score)
@@ -492,7 +564,15 @@ class GameEngine(
         score += GameConfig.SCORE_LEVEL_CLEAR + timeBonus
         music.playSfx(Sfx.LEVEL_CLEAR)
 
+        if (seconds < 15) award(Achievement.ZRIZUS)
+        if (rugelach.isNotEmpty() && rugelach.all { it.collected }) {
+            award(Achievement.KIBUD_RUGELACH)
+        }
+
         if (levelIndex + 1 >= Levels.all.size) {
+            award(Achievement.SEMICHA)
+            if (runLivesLost == 0) award(Achievement.SHOMER_NAFSHO)
+            prefs.incrementCounter("escapes")
             newBest = prefs.submitScore(score)
             if (newBest) highScore = score
             phase = GamePhase.VICTORY
@@ -502,10 +582,27 @@ class GameEngine(
         }
     }
 
+    private fun recordStun() {
+        music.playSfx(Sfx.STUN)
+        if (prefs.incrementCounter("stuns") >= 25) {
+            award(Achievement.FELAFEL_SNIPER)
+        }
+    }
+
+    /** Grants a semicha (achievement) once, with a golden banner. */
+    private fun award(achievement: Achievement) {
+        if (prefs.isAchieved(achievement.name)) return
+        prefs.setAchieved(achievement.name)
+        addFloatingText(
+            achievement.title,
+            worldWidth / 2, worldHeight * 0.35f, Color.rgb(255, 200, 40), 260
+        )
+    }
+
     // -------------------------------------------------------- floating text
 
-    private fun addFloatingText(text: String, x: Float, y: Float, color: Int) {
-        floatingTexts.add(FloatingText(text, x, y, color))
+    private fun addFloatingText(text: String, x: Float, y: Float, color: Int, frames: Int = 90) {
+        floatingTexts.add(FloatingText(text, x, y, color, frames))
     }
 
     private fun updateFloatingTexts() {
@@ -563,6 +660,7 @@ class GameEngine(
             for (a in assistants) a.draw(canvas, worldWidth)
             talmid.draw(canvas)
             for (ball in felafelBalls) ball.draw(canvas)
+            for (chalk in chalks) chalk.draw(canvas)
             for (t in floatingTexts) {
                 floatingTextPaint.color = t.color
                 canvas.drawText(t.text, t.x, t.y, floatingTextPaint)
@@ -576,6 +674,10 @@ class GameEngine(
             }
             val vanSeconds = if (vanFrames >= 0) (vanFrames + 59) / 60 else null
             hud.draw(canvas, score, highScore, lives, level, talmid, vanSeconds)
+            paText?.let { announcement ->
+                canvas.drawRect(worldWidth * 0.04f, 128f, worldWidth * 0.96f, 172f, paBannerPaint)
+                canvas.drawText(announcement, worldWidth / 2, 158f, paTextPaint)
+            }
             if (!touchControlsEnabled) {
                 hud.drawControlsHint(canvas, worldHeight)
             }
@@ -583,7 +685,11 @@ class GameEngine(
 
         overlay.touchMode = touchControlsEnabled
         when (phase) {
-            GamePhase.INTRO -> overlay.drawIntro(canvas, highScore)
+            GamePhase.INTRO -> overlay.drawIntro(
+                canvas, highScore,
+                Achievement.values().count { prefs.isAchieved(it.name) },
+                prefs.getCounter("escapes")
+            )
             GamePhase.LEVEL_INTRO -> overlay.drawLevelIntro(canvas, level)
             GamePhase.PAUSED -> overlay.drawPaused(canvas)
             GamePhase.GAME_OVER -> overlay.drawGameOver(canvas, gameOverLine, score, highScore, newBest)

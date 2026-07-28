@@ -45,6 +45,15 @@ enum class Modifier(val announcement: String) {
     ASSISTANT_MENAHEL("TWO MENAHELIM?! Oy!")
 }
 
+/** Lifetime achievements — "semichos" — persisted across launches. */
+enum class Achievement(val title: String) {
+    SEMICHA("SEMICHA IN ESCAPOLOGY! Finished all 18 levels"),
+    FELAFEL_SNIPER("FELAFEL SNIPER! 25 lifetime stuns"),
+    ZRIZUS("ZRIZUS! Cleared a level in under 15 seconds"),
+    KIBUD_RUGELACH("KIBUD RUGELACH! Every rugelach in one level"),
+    SHOMER_NAFSHO("SHOMER NAFSHO! Escaped without losing a hat")
+}
+
 /** A solid platform in world (pixel) coordinates. */
 data class Platform(val x: Float, val y: Float, val width: Float, val height: Float)
 

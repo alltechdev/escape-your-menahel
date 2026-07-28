@@ -46,6 +46,10 @@ class Talmid {
     var frictionFactor = GameConfig.PLAYER_FRICTION
     var windEnabled = false
 
+    /** Frames left of absorbing a chalk-delivered mussar shmuess (half speed). */
+    var mussarFrames = 0
+        private set
+
     val isInvincible: Boolean get() = invincibleFrames > 0
 
     private val suitPaint = Paint().apply { color = Color.rgb(40, 40, 40); style = Paint.Style.FILL }
@@ -91,6 +95,7 @@ class Talmid {
     fun respawn(startX: Float, floorTopY: Float) {
         resetForLevel(startX, floorTopY)
         invincibleFrames = GameConfig.RESPAWN_INVINCIBILITY
+        mussarFrames = 0
     }
 
     fun clearEffects() {
@@ -129,8 +134,15 @@ class Talmid {
     }
 
     private fun currentSpeed(isRunning: Boolean): Float {
-        val base = if (isRunning) GameConfig.PLAYER_RUN_SPEED else GameConfig.PLAYER_WALK_SPEED
-        return if (coffeeFrames > 0) base * GameConfig.COFFEE_SPEED_MULTIPLIER else base
+        var speed = if (isRunning) GameConfig.PLAYER_RUN_SPEED else GameConfig.PLAYER_WALK_SPEED
+        if (coffeeFrames > 0) speed *= GameConfig.COFFEE_SPEED_MULTIPLIER
+        if (mussarFrames > 0) speed *= 0.5f
+        return speed
+    }
+
+    /** A chalk hit landed: absorb the mussar at half speed for two seconds. */
+    fun receiveMussar() {
+        mussarFrames = 120
     }
 
     /** Returns a felafel ball if the cooldown allows, else null. */
@@ -171,6 +183,7 @@ class Talmid {
         if (coffeeFrames > 0) coffeeFrames--
         if (seltzerFrames > 0) seltzerFrames--
         if (invincibleFrames > 0) invincibleFrames--
+        if (mussarFrames > 0) mussarFrames--
 
         velocityY += GameConfig.GRAVITY
         if (!running) {
@@ -258,6 +271,13 @@ class Talmid {
         // Shoes
         canvas.drawOval(x + 3, y + height - 11, x + 24, y + height + 4, shoePaint)
         canvas.drawOval(x + s - 24, y + height - 11, x + s - 3, y + height + 4, shoePaint)
+
+        // Absorbing mussar: a little gray cloud of rebuke overhead
+        if (mussarFrames > 0) {
+            canvas.drawCircle(x + s / 2 - 14, y - 58, 12f, glassesPaint)
+            canvas.drawCircle(x + s / 2, y - 64, 15f, glassesPaint)
+            canvas.drawCircle(x + s / 2 + 14, y - 58, 12f, glassesPaint)
+        }
 
         // Kugel shield: golden aura
         if (shieldCharges > 0) {
