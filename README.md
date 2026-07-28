@@ -9,8 +9,13 @@ between you and the 4:15 bus to freedom.
 
 ## Features
 
-- **12 handcrafted levels** — from the lunchroom, through the beis medrash and
-  Detention Row, to the roof (assur!), the parking lot, and the 4:15 bus stop
+- **18 handcrafted levels** — from the lunchroom, through the beis medrash,
+  Detention Row, the roof (assur!), the coat room, the mikveh, the
+  fire-escape sukkah, the shul kiddush, and the simcha hall, all the way to
+  the Mesivta Van
+- **Level modifiers** — wet floors (no traction), lights-out levels (follow
+  your little circle of ner), rooftop wind, the Assistant Menahel (two
+  menahelim?!), and a final level where the van leaves in 75 seconds
 - **The Menahel** — chases you relentlessly, gets faster every level, and
   yells authentic mussar in speech bubbles ("Where's your HAT?!", "I ran track
   in '87!")
@@ -22,8 +27,9 @@ between you and the 4:15 bus to freedom.
 - **Rugelach collectibles**, score with time bonuses, 3 lives (displayed as
   black hats, naturally), and a persistent high score
 - **Pause = Mincha Break**
-- **Funky klezmer chiptune soundtrack** — a D-freygish loop synthesized at
-  runtime (square-wave lead, oom-pah triangle bass, offbeat stabs). Mute
+- **Funky klezmer chiptune soundtrack + sound effects** — a D-freygish loop
+  and all SFX (jump blips, felafel pfft, pickup dings, stun warbles, caught
+  womps, level fanfares) synthesized at runtime, zero audio assets. Mute
   with `#`/`0`/`M` on keypads or the ♪ button on the shell; the choice is
   remembered
 - **ESCAPE BOY COLOR™ mode** — on touchscreen-only devices the game becomes

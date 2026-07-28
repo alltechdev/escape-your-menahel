@@ -2,6 +2,7 @@ package com.escapegame.levels
 
 import com.escapegame.model.LevelDefinition
 import com.escapegame.model.LevelTheme
+import com.escapegame.model.Modifier
 import com.escapegame.model.PatrollerSpec
 import com.escapegame.model.PlatformSpec
 import com.escapegame.model.PowerUpSpec
@@ -334,6 +335,186 @@ object Levels {
                 PatrollerSpec(0.30f, 0.75f, FLOOR_TOP),
                 PatrollerSpec(0.30f, 0.66f, T2)
             )
+        ),
+        LevelDefinition(
+            number = 13,
+            name = "The Coat Room",
+            quip = "Four hundred identical black coats. One is yours. There is no time to check.",
+            theme = LevelTheme.COAT_ROOM,
+            menahelSpeed = 6.8f,
+            platforms = listOf(
+                PlatformSpec(0.10f, T1, 0.18f),
+                PlatformSpec(0.40f, T2, 0.18f),
+                PlatformSpec(0.70f, T1, 0.18f),
+                PlatformSpec(0.24f, T3, 0.18f),
+                PlatformSpec(0.55f, T4, 0.18f)
+            ),
+            rugelach = listOf(
+                RugelachSpec(0.19f, T1 - 0.04f),
+                RugelachSpec(0.49f, T2 - 0.04f),
+                RugelachSpec(0.79f, T1 - 0.04f),
+                RugelachSpec(0.33f, T3 - 0.04f),
+                RugelachSpec(0.64f, T4 - 0.04f)
+            ),
+            powerUps = listOf(
+                PowerUpSpec(0.05f, FLOOR_TOP - 0.045f, PowerUpType.COFFEE)
+            ),
+            patrollers = listOf(
+                PatrollerSpec(0.30f, 0.80f, FLOOR_TOP)
+            ),
+            modifiers = setOf(Modifier.DARK)
+        ),
+        LevelDefinition(
+            number = 14,
+            name = "The Mikveh (Erev Shabbos)",
+            quip = "The floor is wet. Obviously. The Menahel brought his good shoes anyway.",
+            theme = LevelTheme.MIKVEH,
+            menahelSpeed = 7.0f,
+            platforms = listOf(
+                PlatformSpec(0.08f, T1, 0.16f),
+                PlatformSpec(0.34f, T1, 0.16f),
+                PlatformSpec(0.60f, T1, 0.16f),
+                PlatformSpec(0.20f, T3, 0.16f),
+                PlatformSpec(0.48f, T3, 0.16f),
+                PlatformSpec(0.76f, T3, 0.16f)
+            ),
+            rugelach = listOf(
+                RugelachSpec(0.16f, T1 - 0.04f),
+                RugelachSpec(0.42f, T1 - 0.04f),
+                RugelachSpec(0.68f, T1 - 0.04f),
+                RugelachSpec(0.28f, T3 - 0.04f),
+                RugelachSpec(0.56f, T3 - 0.04f),
+                RugelachSpec(0.84f, T3 - 0.04f)
+            ),
+            powerUps = listOf(
+                PowerUpSpec(0.90f, T3 - 0.09f, PowerUpType.KUGEL)
+            ),
+            modifiers = setOf(Modifier.SLIPPERY)
+        ),
+        LevelDefinition(
+            number = 15,
+            name = "The Fire-Escape Sukkah",
+            quip = "Halachically questionable. Structurally worse. The wind has opinions.",
+            theme = LevelTheme.SUKKAH,
+            menahelSpeed = 7.2f,
+            platforms = listOf(
+                PlatformSpec(0.10f, T1, 0.16f),
+                PlatformSpec(0.38f, T2, 0.16f),
+                PlatformSpec(0.66f, T3, 0.16f),
+                PlatformSpec(0.38f, T4, 0.16f),
+                PlatformSpec(0.10f, T5, 0.16f),
+                PlatformSpec(0.62f, T5, 0.16f)
+            ),
+            rugelach = listOf(
+                RugelachSpec(0.18f, T1 - 0.04f),
+                RugelachSpec(0.46f, T2 - 0.04f),
+                RugelachSpec(0.74f, T3 - 0.04f),
+                RugelachSpec(0.46f, T4 - 0.04f),
+                RugelachSpec(0.18f, T5 - 0.04f),
+                RugelachSpec(0.70f, T5 - 0.04f)
+            ),
+            powerUps = listOf(
+                PowerUpSpec(0.05f, FLOOR_TOP - 0.045f, PowerUpType.SELTZER)
+            ),
+            patrollers = listOf(
+                PatrollerSpec(0.20f, 0.70f, FLOOR_TOP)
+            ),
+            modifiers = setOf(Modifier.WIND)
+        ),
+        LevelDefinition(
+            number = 16,
+            name = "The Shul Kiddush",
+            quip = "Herring, crackers, and nowhere to hide. The Assistant Menahel is also here.",
+            theme = LevelTheme.SHUL,
+            menahelSpeed = 7.4f,
+            platforms = listOf(
+                PlatformSpec(0.08f, T1, 0.16f),
+                PlatformSpec(0.34f, T2, 0.16f),
+                PlatformSpec(0.62f, T1, 0.16f),
+                PlatformSpec(0.84f, T3, 0.14f),
+                PlatformSpec(0.30f, T4, 0.16f),
+                PlatformSpec(0.58f, T5, 0.14f)
+            ),
+            rugelach = listOf(
+                RugelachSpec(0.16f, T1 - 0.04f),
+                RugelachSpec(0.42f, T2 - 0.04f),
+                RugelachSpec(0.70f, T1 - 0.04f),
+                RugelachSpec(0.91f, T3 - 0.04f),
+                RugelachSpec(0.38f, T4 - 0.04f),
+                RugelachSpec(0.65f, T5 - 0.04f)
+            ),
+            powerUps = listOf(
+                PowerUpSpec(0.05f, FLOOR_TOP - 0.045f, PowerUpType.KUGEL)
+            ),
+            modifiers = setOf(Modifier.ASSISTANT_MENAHEL)
+        ),
+        LevelDefinition(
+            number = 17,
+            name = "The Simcha Hall",
+            quip = "A vort. Again. You don't even know whose. The dance floor was just polished.",
+            theme = LevelTheme.SIMCHA_HALL,
+            menahelSpeed = 7.6f,
+            platforms = listOf(
+                PlatformSpec(0.06f, T1, 0.15f),
+                PlatformSpec(0.30f, T2, 0.15f),
+                PlatformSpec(0.54f, T3, 0.15f),
+                PlatformSpec(0.78f, T2, 0.15f),
+                PlatformSpec(0.30f, T4, 0.15f),
+                PlatformSpec(0.06f, T5, 0.15f),
+                PlatformSpec(0.55f, T5, 0.15f)
+            ),
+            rugelach = listOf(
+                RugelachSpec(0.13f, T1 - 0.04f),
+                RugelachSpec(0.37f, T2 - 0.04f),
+                RugelachSpec(0.61f, T3 - 0.04f),
+                RugelachSpec(0.85f, T2 - 0.04f),
+                RugelachSpec(0.37f, T4 - 0.04f),
+                RugelachSpec(0.13f, T5 - 0.04f)
+            ),
+            powerUps = listOf(
+                PowerUpSpec(0.90f, FLOOR_TOP - 0.045f, PowerUpType.COFFEE),
+                PowerUpSpec(0.62f, T5 - 0.09f, PowerUpType.KUGEL)
+            ),
+            patrollers = listOf(
+                PatrollerSpec(0.30f, 0.75f, FLOOR_TOP)
+            ),
+            modifiers = setOf(Modifier.SLIPPERY, Modifier.ASSISTANT_MENAHEL)
+        ),
+        LevelDefinition(
+            number = 18,
+            name = "The Mesivta Van",
+            quip = "The van to the mountains leaves NOW. Everyone is watching. NU, GO!",
+            theme = LevelTheme.BUS_STOP,
+            menahelSpeed = 7.9f,
+            platforms = listOf(
+                PlatformSpec(0.06f, T1, 0.14f),
+                PlatformSpec(0.28f, T2, 0.14f),
+                PlatformSpec(0.50f, T3, 0.14f),
+                PlatformSpec(0.72f, T2, 0.14f),
+                PlatformSpec(0.28f, T4, 0.14f),
+                PlatformSpec(0.06f, T5, 0.14f),
+                PlatformSpec(0.52f, T5, 0.14f),
+                PlatformSpec(0.76f, T4, 0.14f)
+            ),
+            rugelach = listOf(
+                RugelachSpec(0.12f, T1 - 0.04f),
+                RugelachSpec(0.34f, T2 - 0.04f),
+                RugelachSpec(0.56f, T3 - 0.04f),
+                RugelachSpec(0.78f, T2 - 0.04f),
+                RugelachSpec(0.34f, T4 - 0.04f),
+                RugelachSpec(0.12f, T5 - 0.04f),
+                RugelachSpec(0.58f, T5 - 0.04f),
+                RugelachSpec(0.82f, T4 - 0.04f)
+            ),
+            powerUps = listOf(
+                PowerUpSpec(0.90f, FLOOR_TOP - 0.045f, PowerUpType.COFFEE),
+                PowerUpSpec(0.05f, FLOOR_TOP - 0.045f, PowerUpType.SELTZER)
+            ),
+            patrollers = listOf(
+                PatrollerSpec(0.28f, 0.70f, FLOOR_TOP)
+            ),
+            modifiers = setOf(Modifier.ASSISTANT_MENAHEL),
+            timeLimitSeconds = 75
         )
     )
 
@@ -356,7 +537,13 @@ object Levels {
         "Mamash unbelievable!",
         "Wait till I call your father!",
         "The Rosh Yeshiva will hear of this!",
-        "You call that a gartel?!"
+        "You call that a gartel?!",
+        "Bittul zman! BITTUL ZMAN!",
+        "You think this is camp?!",
+        "Not in MY yeshiva!",
+        "Who gave you a heter?!",
+        "That felafel comes out of recess!",
+        "I know your chavrusa's father!"
     )
 
     /** Random headline for the game-over screen. */
@@ -367,7 +554,10 @@ object Levels {
         "Nu nu. Back to seder.",
         "Oy vey. So close.",
         "He gave you the LOOK. It's over.",
-        "Straight to mussar shmuess with you."
+        "Straight to mussar shmuess with you.",
+        "The Assistant Menahel saw everything. Twice.",
+        "Your father was called. And your zeidy.",
+        "Verdict: chutzpah in the first degree."
     )
 
     /** Lines for the victory screen, in display order. */

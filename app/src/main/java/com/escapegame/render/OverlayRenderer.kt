@@ -63,6 +63,12 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         textSize = 26f
         textAlign = Paint.Align.CENTER
     }
+    private val modifierPaint = Paint().apply {
+        color = Color.rgb(255, 170, 60)
+        textSize = 28f
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
     private val cardRect = RectF()
 
     fun drawIntro(canvas: Canvas, highScore: Int) {
@@ -77,7 +83,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
             canvas.drawText("D-pad — move  ·  B — jump (x2 = double)", w / 2, y, bodyPaint); y += lh
             canvas.drawText("A — run + shoot felafel", w / 2, y, bodyPaint); y += lh
             canvas.drawText("START — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.4f
-            canvas.drawText("Grab rugelach. 12 levels to the 4:15 bus.", w / 2, y, bodyPaint)
+            canvas.drawText("Grab rugelach. ${Levels.all.size} levels to freedom.", w / 2, y, bodyPaint)
 
             if (highScore > 0) {
                 canvas.drawText("Best escape so far: $highScore", w / 2, h * 0.76f, bodyPaint)
@@ -103,7 +109,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText("0 / # — klezmer on/off", w / 2, y, bodyPaint); y += lh * 1.8f
 
         canvas.drawText("Grab rugelach. Chap the power-ups.", w / 2, y, bodyPaint); y += lh
-        canvas.drawText("12 levels between you and the 4:15 bus.", w / 2, y, bodyPaint); y += lh * 1.6f
+        canvas.drawText("${Levels.all.size} levels between you and freedom.", w / 2, y, bodyPaint); y += lh * 1.6f
 
         if (highScore > 0) {
             canvas.drawText("Best escape so far: $highScore", w / 2, y, bodyPaint)
@@ -125,10 +131,20 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
 
         val top = cardRect.top
         val height = cardRect.height()
-        canvas.drawText("Level ${level.number} of ${Levels.all.size}", w / 2, top + height * 0.18f, bodyPaint)
-        canvas.drawText(level.name, w / 2, top + height * 0.36f, headerPaint)
-        drawWrapped(canvas, level.quip, w / 2, top + height * 0.55f, cardRect.width() * 0.86f)
-        canvas.drawText(confirmPrompt("go"), w / 2, cardRect.bottom - height * 0.1f, accentPaint)
+        canvas.drawText("Level ${level.number} of ${Levels.all.size}", w / 2, top + height * 0.16f, bodyPaint)
+        canvas.drawText(level.name, w / 2, top + height * 0.32f, headerPaint)
+        drawWrapped(canvas, level.quip, w / 2, top + height * 0.47f, cardRect.width() * 0.86f)
+
+        var modifierY = top + height * 0.68f
+        for (modifier in level.modifiers) {
+            canvas.drawText(modifier.announcement, w / 2, modifierY, modifierPaint)
+            modifierY += 34f
+        }
+        level.timeLimitSeconds?.let {
+            canvas.drawText("THE VAN LEAVES IN $it SECONDS!", w / 2, modifierY, modifierPaint)
+        }
+
+        canvas.drawText(confirmPrompt("go"), w / 2, cardRect.bottom - height * 0.08f, accentPaint)
     }
 
     fun drawPaused(canvas: Canvas) {

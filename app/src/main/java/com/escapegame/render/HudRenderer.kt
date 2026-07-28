@@ -33,12 +33,26 @@ class HudRenderer(private val w: Float) {
         textSize = 26f
         style = Paint.Style.FILL
     }
+    private val vanPaint = Paint().apply {
+        textSize = 34f
+        textAlign = Paint.Align.CENTER
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+        style = Paint.Style.FILL
+    }
     private val barPaint = Paint().apply {
         color = Color.argb(140, 255, 255, 255)
         style = Paint.Style.FILL
     }
 
-    fun draw(canvas: Canvas, score: Int, highScore: Int, lives: Int, level: LevelDefinition, talmid: Talmid) {
+    fun draw(
+        canvas: Canvas,
+        score: Int,
+        highScore: Int,
+        lives: Int,
+        level: LevelDefinition,
+        talmid: Talmid,
+        vanSecondsLeft: Int?
+    ) {
         // Translucent strip so the HUD stays readable over any theme
         canvas.drawRect(0f, 0f, w, 116f, barPaint)
 
@@ -47,6 +61,12 @@ class HudRenderer(private val w: Float) {
         canvas.drawText("Score: $score", 20f, 88f, textPaint)
         rightTextPaint.color = Color.rgb(90, 60, 20)
         canvas.drawText("Best: $highScore", w - 20f, 44f, rightTextPaint)
+
+        if (vanSecondsLeft != null) {
+            vanPaint.color =
+                if (vanSecondsLeft <= 10) Color.rgb(220, 30, 30) else Color.rgb(150, 60, 10)
+            canvas.drawText("VAN LEAVES: ${vanSecondsLeft}s", w / 2, 88f, vanPaint)
+        }
 
         // Lives as black hats, top right
         for (i in 0 until lives) {
