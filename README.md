@@ -4,8 +4,8 @@ The ultimate yeshiva breakout platformer, designed for **kosher flip and bar
 phones**: keypad + d-pad controls, portrait orientation, and a fixed virtual
 resolution that renders identically on the tiniest screens.
 
-You left the beis medrash early. He saw. He ALWAYS sees. Twelve levels stand
-between you and the 4:15 bus to freedom.
+You left the beis medrash early. He saw. He ALWAYS sees. Eighteen levels
+stand between you and freedom — or endless Bein Hazmanim, if you dare.
 
 ## Features
 
@@ -24,8 +24,11 @@ between you and the 4:15 bus to freedom.
 - **Felafel launcher** — the classic. 300ms cooldown, aims where you face
 - **Power-ups** — Kavana Coffee (speed), seltzer (triple jump), and Bubby's
   kugel (absorbs one catch)
-- **Rugelach collectibles**, score with time bonuses, 3 lives (displayed as
-  black hats, naturally), and a persistent high score
+- **Rugelach collectibles**, score with time bonuses, lives displayed as
+  black hats (1-5 depending on your madreiga), and a persistent high score
+- **Chazaka combos** — three rugelach within four seconds start a x2 chain
+- **The Candy Man** — a rare friendly visitor; reach him for an extra hat.
+  He does not run. He has never needed to
 - **Pause = Mincha Break**
 - **Bein Hazmanim mode** — endless procedurally generated days with rising
   danger, random modifiers, and a persistent best-day record. There is no
@@ -62,10 +65,15 @@ between you and the 4:15 bus to freedom.
 | `5` or OK / CENTER | Start · run · shoot felafel · confirm |
 | `*`, `P`, or MENU | Mincha break (pause) |
 | `#`, `0`, or `M` | Klezmer on/off |
+| `7` or DOWN (title screen) | Global leaderboard |
+| `8` or DOWN | Menu navigation |
 | BACK | Exit the game |
 
 On touchscreens with no physical keys: d-pad moves, **B** jumps, **A** runs +
-shoots felafel, **START** pauses, and any tap confirms menus.
+shoots felafel, **START**/**SELECT** pause, the ♪ bezel button mutes, and
+SELECT on the title screen opens the leaderboard. In menus the d-pad
+navigates and A/START (or tapping a row) confirms; on other screens any tap
+off the movement controls confirms.
 
 Hybrid devices with both a keypad/d-pad **and** a touchscreen are treated as
 keypad devices: fullscreen game, no on-screen controls, touches ignored.
@@ -76,8 +84,9 @@ keypad devices: fullscreen game, no on-screen controls, touches ignored.
 extra: fetching and submitting only happen on demand, and every failure
 degrades silently back to normal offline play.
 
-The game shows the global top 10 (press `7`, or SELECT on the title screen in
-touch mode), fetched anonymously from `leaderboard.json` in this repo.
+The game shows the global top 10 (press `7` or DOWN on the title screen;
+SELECT in touch mode), fetched anonymously from `leaderboard.json` in this
+repo.
 
 **Live submissions**: when a run ends, the game automatically submits your
 score under an auto-generated handle (e.g. `Shmerel-382`) by opening a
@@ -115,19 +124,23 @@ installs directly).
 
 ## Architecture
 
-The game simulates in a fixed 1080×1920 virtual world scaled to the physical
-surface, so layout, physics, and text are identical on every screen size.
+The game simulates in a fixed virtual world scaled to the physical surface,
+so layout, physics, and text are identical on every screen size: 1080×1920
+portrait on keypad phones, 1440×1080 landscape inside the handheld shell's
+LCD in touch mode. Levels are defined in screen fractions and re-flow to
+either world.
 
 ```
 com.escapegame
 ├── core          GameConfig — every tuning constant in one place
-├── model         Phases, themes, level/platform/pickup specs
-├── levels        The 12-level catalog + all flavor text
-├── entities      Talmid, Menahel, Mashgiach, FelafelBall, pickups
+├── model         Phases, difficulties, modifiers, achievements, level specs
+├── levels        The 18-level catalog, endless-day generator, flavor text
+├── entities      Talmid, Menahel, Mashgiach, Candy Man, felafel, chalk, pickups
 ├── engine        GameEngine — state machine, rules, scoring
-├── render        Theme backgrounds, HUD, overlay screens
-├── audio         Runtime-synthesized klezmer chiptune
-├── persistence   High score + settings storage
+├── render        Theme backgrounds, HUD, overlays, shell + touch gamepad
+├── audio         Runtime-synthesized klezmer chiptune + sound effects
+├── net           Read-only leaderboard fetch + auto-submission
+├── persistence   High score, settings, achievements, player handle
 ├── GameView      Surface + render thread + key mapping
 └── MainActivity
 ```
