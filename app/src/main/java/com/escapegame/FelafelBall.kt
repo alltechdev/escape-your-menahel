@@ -18,7 +18,12 @@ data class FelafelBall(var x: Float, var y: Float, val velocityX: Float) {
         color = Color.rgb(160, 82, 45) // Lighter brown
         style = Paint.Style.FILL
     }
-    
+
+    private val dotPaint = Paint().apply {
+        color = Color.rgb(101, 50, 15) // Dark brown dots
+        style = Paint.Style.FILL
+    }
+
     fun update() {
         if (active) {
             x += velocityX * speed
@@ -32,10 +37,6 @@ data class FelafelBall(var x: Float, var y: Float, val velocityX: Float) {
             // Draw inner lighter brown
             canvas.drawCircle(x, y, size * 0.6f, innerPaint)
             // Add felafel texture dots
-            val dotPaint = Paint().apply {
-                color = Color.rgb(101, 50, 15) // Dark brown dots
-                style = Paint.Style.FILL
-            }
             canvas.drawCircle(x - 2, y - 2, 1.5f, dotPaint)
             canvas.drawCircle(x + 1, y - 3, 1f, dotPaint)
             canvas.drawCircle(x - 1, y + 2, 1f, dotPaint)
