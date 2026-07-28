@@ -22,6 +22,10 @@ between you and the 4:15 bus to freedom.
 - **Rugelach collectibles**, score with time bonuses, 3 lives (displayed as
   black hats, naturally), and a persistent high score
 - **Pause = Mincha Break**
+- **Funky klezmer chiptune soundtrack** — a D-freygish loop synthesized at
+  runtime (square-wave lead, oom-pah triangle bass, offbeat stabs). Mute
+  with `#`/`0`/`M` on keypads or the ♪ button on the shell; the choice is
+  remembered
 - **ESCAPE BOY COLOR™ mode** — on touchscreen-only devices the game becomes
   a full retro handheld in classic yellow: a wide landscape LCD up top,
   d-pad + A/B + SELECT/START on the body below. The level re-flows into a
@@ -36,6 +40,7 @@ between you and the 4:15 bus to freedom.
 | `2` or UP | Jump (press twice for double jump) |
 | `5` or OK / CENTER | Start · run · shoot felafel · confirm |
 | `*`, `P`, or MENU | Mincha break (pause) |
+| `#`, `0`, or `M` | Klezmer on/off |
 | BACK | Exit the game |
 
 On touchscreens with no physical keys: d-pad moves, **B** jumps, **A** runs +
@@ -65,7 +70,8 @@ com.escapegame
 ├── entities      Talmid, Menahel, Mashgiach, FelafelBall, pickups
 ├── engine        GameEngine — state machine, rules, scoring
 ├── render        Theme backgrounds, HUD, overlay screens
-├── persistence   High-score storage
+├── audio         Runtime-synthesized klezmer chiptune
+├── persistence   High score + settings storage
 ├── GameView      Surface + render thread + key mapping
 └── MainActivity
 ```

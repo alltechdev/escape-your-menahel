@@ -18,7 +18,7 @@ import com.escapegame.core.GameConfig
  */
 object TouchGamepadLayout {
 
-    enum class Control { DPAD_LEFT, DPAD_RIGHT, DPAD_UP, BUTTON_A, BUTTON_B, START, SELECT, NONE }
+    enum class Control { DPAD_LEFT, DPAD_RIGHT, DPAD_UP, BUTTON_A, BUTTON_B, START, SELECT, MUTE, NONE }
 
     // Shell geometry: a wide, minimal bezel around a 4:3 landscape LCD;
     // the game world (1440x1080) fits it exactly.
@@ -52,6 +52,9 @@ object TouchGamepadLayout {
     val selectRect = RectF(350f, 1520f, 520f, 1578f)
     val startRect = RectF(560f, 1520f, 730f, 1578f)
 
+    // Music mute button in the bezel's top strip
+    val muteRect = RectF(905f, 76f, 1028f, 114f)
+
     fun hit(x: Float, y: Float): Control {
         var dx = x - A_CX
         var dy = y - A_CY
@@ -61,6 +64,7 @@ object TouchGamepadLayout {
         if (dx * dx + dy * dy <= BUTTON_RADIUS * BUTTON_RADIUS) return Control.BUTTON_B
         if (startRect.contains(x, y)) return Control.START
         if (selectRect.contains(x, y)) return Control.SELECT
+        if (muteRect.contains(x, y)) return Control.MUTE
 
         // D-pad: inside the cross's bounding box, pick the dominant axis
         dx = x - DPAD_CX
@@ -127,7 +131,18 @@ class TouchGamepadRenderer {
     )
     private val arrowPath = Path()
 
-    fun draw(canvas: Canvas) {
+    fun draw(canvas: Canvas, musicMuted: Boolean) {
+        // Mute toggle up in the bezel strip, by the LED
+        canvas.drawRoundRect(TouchGamepadLayout.muteRect, 19f, 19f, padPaint)
+        buttonTextPaint.textSize = 24f
+        canvas.drawText(
+            if (musicMuted) "\u266a OFF" else "\u266a ON",
+            TouchGamepadLayout.muteRect.centerX(),
+            TouchGamepadLayout.muteRect.centerY() + 9f,
+            buttonTextPaint
+        )
+        buttonTextPaint.textSize = 54f
+
         val cx = TouchGamepadLayout.DPAD_CX
         val cy = TouchGamepadLayout.DPAD_CY
         val arm = TouchGamepadLayout.DPAD_ARM
