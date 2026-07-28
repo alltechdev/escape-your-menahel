@@ -218,7 +218,24 @@ class GameView(context: Context, private val engine: GameEngine) :
                 TouchGamepadLayout.Control.DPAD_RIGHT,
                 TouchGamepadLayout.Control.DPAD_UP,
                 TouchGamepadLayout.Control.BUTTON_B -> Unit
-                else -> engine.onActionDown()
+                else -> {
+                    if (engine.phase == GamePhase.INTRO) {
+                        // Title-screen taps are position-sensitive (the
+                        // leaderboard button), so convert to world coords
+                        val shellX = worldX(event, pointerIndex)
+                        val shellY = worldY(event, pointerIndex)
+                        if (touchMode) {
+                            engine.onIntroTap(
+                                (shellX - TouchGamepadLayout.screenOffsetX) / TouchGamepadLayout.screenScale,
+                                (shellY - TouchGamepadLayout.screenOffsetY) / TouchGamepadLayout.screenScale
+                            )
+                        } else {
+                            engine.onIntroTap(shellX, shellY)
+                        }
+                    } else {
+                        engine.onActionDown()
+                    }
+                }
             }
             return
         }
