@@ -71,7 +71,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
     }
     private val cardRect = RectF()
 
-    fun drawIntro(canvas: Canvas, highScore: Int) {
+    fun drawIntro(canvas: Canvas, highScore: Int, semichos: Int, escapes: Int) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
 
         if (compact) {
@@ -86,7 +86,10 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
             canvas.drawText("Grab rugelach. ${Levels.all.size} levels to freedom.", w / 2, y, bodyPaint)
 
             if (highScore > 0) {
-                canvas.drawText("Best escape so far: $highScore", w / 2, h * 0.76f, bodyPaint)
+                canvas.drawText(
+                    "Best: $highScore · Semichos: $semichos/5 · Escapes: $escapes",
+                    w / 2, h * 0.76f, bodyPaint
+                )
             }
             canvas.drawText(confirmPrompt("start"), w / 2, h * 0.87f, accentPaint)
             return
@@ -112,8 +115,9 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText("${Levels.all.size} levels between you and freedom.", w / 2, y, bodyPaint); y += lh * 1.6f
 
         if (highScore > 0) {
-            canvas.drawText("Best escape so far: $highScore", w / 2, y, bodyPaint)
+            canvas.drawText("Best escape so far: $highScore", w / 2, y, bodyPaint); y += lh
         }
+        canvas.drawText("Semichos earned: $semichos/5 · Escapes: $escapes", w / 2, y, bodyPaint)
 
         canvas.drawText(confirmPrompt("start"), w / 2, h * 0.88f, accentPaint)
         canvas.drawText("Est. 5747 · Accredited by absolutely nobody", w / 2, h * 0.93f, finePrintPaint)

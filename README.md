@@ -27,6 +27,13 @@ between you and the 4:15 bus to freedom.
 - **Rugelach collectibles**, score with time bonuses, 3 lives (displayed as
   black hats, naturally), and a persistent high score
 - **Pause = Mincha Break**
+- **Chalk fire** — from level 10 the Menahel throws chalk with decades-honed
+  accuracy; getting hit delivers mussar (half speed while you absorb it)
+- **Semichos (achievements)** — five lifetime achievements (Felafel Sniper,
+  Zrizus, Kibud Rugelach, Shomer Nafsho, and full Semicha in Escapology)
+  plus lifetime escape stats, persisted across launches
+- **PA announcements** — the yeshiva intercom interrupts at random
+  ("Reminder — the elevator is still fleishig.")
 - **Funky klezmer chiptune soundtrack + sound effects** — a D-freygish loop
   and all SFX (jump blips, felafel pfft, pickup dings, stun warbles, caught
   womps, level fanfares) synthesized at runtime, zero audio assets. Mute

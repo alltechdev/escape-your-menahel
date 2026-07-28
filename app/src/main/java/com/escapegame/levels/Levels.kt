@@ -560,6 +560,20 @@ object Levels {
         "Verdict: chutzpah in the first degree."
     )
 
+    /** PA-system announcements that interrupt gameplay at random. */
+    val paAnnouncements: List<String> = listOf(
+        "PA: Mincha in the small beis medrash in 5 minutes.",
+        "PA: Whoever borrowed the shtender from Room 2 - we know.",
+        "PA: Lost: one black hat. Description: black.",
+        "PA: The kiddush is BYOH. Bring your own herring.",
+        "PA: Night seder attendance will be VERY noted.",
+        "PA: The candy man retired. There is no replacement.",
+        "PA: Reminder - the elevator is still fleishig.",
+        "PA: The Menahel requests you stop running. Immediately.",
+        "PA: Supper is potato. Just potato.",
+        "PA: The coffee room is closed for chometz. It is Cheshvan."
+    )
+
     /** Lines for the victory screen, in display order. */
     val victoryLines: List<String> = listOf(
         "You escaped the yeshiva!",

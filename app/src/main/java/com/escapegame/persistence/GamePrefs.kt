@@ -25,6 +25,21 @@ class GamePrefs(context: Context) {
         prefs.edit().putBoolean(KEY_MUTED, muted).apply()
     }
 
+    fun isAchieved(name: String): Boolean = prefs.getBoolean("ach_" + name, false)
+
+    fun setAchieved(name: String) {
+        prefs.edit().putBoolean("ach_" + name, true).apply()
+    }
+
+    fun getCounter(name: String): Int = prefs.getInt("cnt_" + name, 0)
+
+    /** Increments a lifetime counter and returns the new value. */
+    fun incrementCounter(name: String): Int {
+        val value = getCounter(name) + 1
+        prefs.edit().putInt("cnt_" + name, value).apply()
+        return value
+    }
+
     private companion object {
         const val PREFS_NAME = "escape_menahel"
         const val KEY_HIGH_SCORE = "high_score"
