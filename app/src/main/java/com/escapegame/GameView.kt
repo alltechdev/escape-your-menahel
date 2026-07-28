@@ -79,6 +79,9 @@ class GameView(context: Context, private val engine: GameEngine) :
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_W -> {
                     if (event.repeatCount == 0) engine.onJump(); true
                 }
+                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_S -> {
+                    if (event.repeatCount == 0) engine.onMenuDown(); true
+                }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_5,
                 KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ENTER -> {
                     if (event.repeatCount == 0) engine.onActionDown(); true
@@ -114,6 +117,7 @@ class GameView(context: Context, private val engine: GameEngine) :
                 KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ENTER ->
                     engine.onActionUp()
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_W,
+                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_S,
                 KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_STAR,
                 KeyEvent.KEYCODE_POUND, KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_M ->
                     Unit // handled on key-down; consume the up event
@@ -149,6 +153,21 @@ class GameView(context: Context, private val engine: GameEngine) :
         val control = TouchGamepadLayout.hit(worldX(event, pointerIndex), worldY(event, pointerIndex))
         if (control == TouchGamepadLayout.Control.MUTE) {
             engine.toggleMute()
+            return
+        }
+        if (engine.phase == GamePhase.DIFFICULTY_SELECT) {
+            // Menu taps need game-world coordinates (inside the LCD in
+            // touch mode, the whole screen otherwise)
+            val shellX = worldX(event, pointerIndex)
+            val shellY = worldY(event, pointerIndex)
+            if (touchMode) {
+                engine.onMenuTap(
+                    (shellX - TouchGamepadLayout.screenOffsetX) / TouchGamepadLayout.screenScale,
+                    (shellY - TouchGamepadLayout.screenOffsetY) / TouchGamepadLayout.screenScale
+                )
+            } else {
+                engine.onMenuTap(shellX, shellY)
+            }
             return
         }
         if (engine.phase != GamePhase.PLAYING) {

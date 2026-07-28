@@ -25,6 +25,13 @@ class GamePrefs(context: Context) {
         prefs.edit().putBoolean(KEY_MUTED, muted).apply()
     }
 
+    fun getDifficultyName(default: String): String =
+        prefs.getString(KEY_DIFFICULTY, default) ?: default
+
+    fun setDifficultyName(name: String) {
+        prefs.edit().putString(KEY_DIFFICULTY, name).apply()
+    }
+
     fun isAchieved(name: String): Boolean = prefs.getBoolean("ach_" + name, false)
 
     fun setAchieved(name: String) {
@@ -44,5 +51,6 @@ class GamePrefs(context: Context) {
         const val PREFS_NAME = "escape_menahel"
         const val KEY_HIGH_SCORE = "high_score"
         const val KEY_MUTED = "music_muted"
+        const val KEY_DIFFICULTY = "difficulty"
     }
 }

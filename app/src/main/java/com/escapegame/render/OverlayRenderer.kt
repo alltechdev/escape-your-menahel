@@ -6,6 +6,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
 import com.escapegame.levels.Levels
+import com.escapegame.model.Difficulty
 import com.escapegame.model.LevelDefinition
 
 /**
@@ -61,6 +62,17 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
     private val finePrintPaint = Paint().apply {
         color = Color.rgb(170, 170, 170)
         textSize = 26f
+        textAlign = Paint.Align.CENTER
+    }
+    private val difficultyLabelPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 40f
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    private val difficultyDescPaint = Paint().apply {
+        color = Color.rgb(200, 200, 210)
+        textSize = 27f
         textAlign = Paint.Align.CENTER
     }
     private val modifierPaint = Paint().apply {
@@ -123,7 +135,43 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText("Est. 5747 · Accredited by absolutely nobody", w / 2, h * 0.93f, finePrintPaint)
     }
 
-    fun drawLevelIntro(canvas: Canvas, level: LevelDefinition) {
+    fun drawDifficultySelect(canvas: Canvas, selected: Int) {
+        canvas.drawRect(0f, 0f, w, h, dimPaint)
+        canvas.drawText("CHOOSE YOUR MADREIGA", w / 2, h * 0.13f, headerPaint)
+
+        val values = Difficulty.values()
+        for (i in values.indices) {
+            val top = difficultyRowTop(i)
+            cardRect.set(w * 0.08f, top, w * 0.92f, top + difficultyRowHeight())
+            canvas.drawRoundRect(cardRect, 18f, 18f, cardPaint)
+            if (i == selected) {
+                canvas.drawRoundRect(cardRect, 18f, 18f, cardStrokePaint)
+            }
+            val option = values[i]
+            difficultyLabelPaint.color = if (i == selected) Color.YELLOW else Color.WHITE
+            canvas.drawText(option.label, w / 2, top + difficultyRowHeight() * 0.42f, difficultyLabelPaint)
+            canvas.drawText(option.description, w / 2, top + difficultyRowHeight() * 0.78f, difficultyDescPaint)
+        }
+
+        val prompt = if (touchMode) "Tap a madreiga to begin" else "2/8 or UP/DOWN choose · 5/OK begin"
+        canvas.drawText(prompt, w / 2, h * 0.93f, accentPaint)
+    }
+
+    /** Index of the difficulty row containing the point, or -1. */
+    fun difficultyRowAt(x: Float, y: Float): Int {
+        if (x < w * 0.08f || x > w * 0.92f) return -1
+        for (i in Difficulty.values().indices) {
+            val top = difficultyRowTop(i)
+            if (y >= top && y <= top + difficultyRowHeight()) return i
+        }
+        return -1
+    }
+
+    private fun difficultyRowTop(index: Int): Float = h * (0.20f + index * 0.17f)
+
+    private fun difficultyRowHeight(): Float = h * 0.13f
+
+    fun drawLevelIntro(canvas: Canvas, level: LevelDefinition, difficultyLabel: String) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
         if (compact) {
             cardRect.set(w * 0.12f, h * 0.24f, w * 0.88f, h * 0.76f)
@@ -135,7 +183,10 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
 
         val top = cardRect.top
         val height = cardRect.height()
-        canvas.drawText("Level ${level.number} of ${Levels.all.size}", w / 2, top + height * 0.16f, bodyPaint)
+        canvas.drawText(
+            "Level ${level.number} of ${Levels.all.size} · $difficultyLabel",
+            w / 2, top + height * 0.16f, bodyPaint
+        )
         canvas.drawText(level.name, w / 2, top + height * 0.32f, headerPaint)
         drawWrapped(canvas, level.quip, w / 2, top + height * 0.47f, cardRect.width() * 0.86f)
 

@@ -14,7 +14,8 @@ import com.escapegame.core.GameConfig
 class Mashgiach(
     private val patrolStartX: Float,
     private val patrolEndX: Float,
-    surfaceTopY: Float
+    surfaceTopY: Float,
+    private val speed: Float = GameConfig.MASHGIACH_SPEED
 ) {
     var x = patrolStartX
         private set
@@ -63,10 +64,10 @@ class Mashgiach(
             return
         }
         if (movingRight) {
-            x += GameConfig.MASHGIACH_SPEED
+            x += speed
             if (x + width >= patrolEndX) movingRight = false
         } else {
-            x -= GameConfig.MASHGIACH_SPEED
+            x -= speed
             if (x <= patrolStartX) movingRight = true
         }
     }

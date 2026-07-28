@@ -14,6 +14,7 @@ import com.escapegame.entities.Rugelach
 import com.escapegame.entities.Talmid
 import com.escapegame.levels.Levels
 import com.escapegame.model.Achievement
+import com.escapegame.model.Difficulty
 import com.escapegame.model.GamePhase
 import com.escapegame.model.Modifier
 import com.escapegame.model.LevelDefinition
@@ -86,6 +87,15 @@ class GameEngine(
     private var rightPressed = false
     private var runPressed = false
 
+    private var difficulty = loadDifficulty()
+    private var difficultySelection = 0
+
+    private fun loadDifficulty(): Difficulty = try {
+        Difficulty.valueOf(prefs.getDifficultyName(Difficulty.BAAL_HABOS.name))
+    } catch (e: IllegalArgumentException) {
+        Difficulty.BAAL_HABOS
+    }
+
     init {
         // Populate level 1 so the intro screen has a real backdrop
         buildLevel(0)
@@ -147,22 +157,50 @@ class GameEngine(
 
     fun onLeft(pressed: Boolean) {
         leftPressed = pressed
+        if (pressed && phase == GamePhase.DIFFICULTY_SELECT) moveDifficultySelection(-1)
     }
 
     fun onRight(pressed: Boolean) {
         rightPressed = pressed
+        if (pressed && phase == GamePhase.DIFFICULTY_SELECT) moveDifficultySelection(1)
     }
 
     fun onJump() {
-        if (phase == GamePhase.PLAYING && talmid.jump()) {
-            music.playSfx(Sfx.JUMP)
+        when (phase) {
+            GamePhase.PLAYING -> if (talmid.jump()) music.playSfx(Sfx.JUMP)
+            GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(-1)
+            else -> Unit
         }
+    }
+
+    /** DOWN / 8: only meaningful on the difficulty menu. */
+    fun onMenuDown() {
+        if (phase == GamePhase.DIFFICULTY_SELECT) moveDifficultySelection(1)
+    }
+
+    private fun moveDifficultySelection(delta: Int) {
+        val count = Difficulty.values().size
+        difficultySelection = (difficultySelection + delta + count) % count
+        music.playSfx(Sfx.PICKUP)
+    }
+
+    /** A tap on the difficulty screen (world coordinates). */
+    fun onMenuTap(x: Float, y: Float) {
+        if (phase != GamePhase.DIFFICULTY_SELECT) return
+        val row = overlay.difficultyRowAt(x, y)
+        if (row >= 0) difficultySelection = row
+        confirmDifficulty()
     }
 
     /** CENTER / 5 / OK pressed: the universal confirm-and-action button. */
     fun onActionDown() {
         when (phase) {
-            GamePhase.INTRO -> startNewGame()
+            GamePhase.INTRO -> {
+                difficultySelection = difficulty.ordinal
+                phase = GamePhase.DIFFICULTY_SELECT
+                phaseFrames = 0
+            }
+            GamePhase.DIFFICULTY_SELECT -> confirmDifficulty()
             GamePhase.LEVEL_INTRO -> beginPlay()
             GamePhase.PLAYING -> {
                 runPressed = true
@@ -202,9 +240,15 @@ class GameEngine(
 
     // ------------------------------------------------------------ lifecycle
 
+    private fun confirmDifficulty() {
+        difficulty = Difficulty.values()[difficultySelection]
+        prefs.setDifficultyName(difficulty.name)
+        startNewGame()
+    }
+
     private fun startNewGame() {
         score = 0
-        lives = GameConfig.STARTING_LIVES
+        lives = difficulty.lives
         newBest = false
         runLivesLost = 0
         talmid.clearEffects()
@@ -278,7 +322,8 @@ class GameEngine(
                 Mashgiach(
                     spec.fxStart * worldWidth,
                     spec.fxEnd * worldWidth,
-                    spec.fy * worldHeight
+                    spec.fy * worldHeight,
+                    GameConfig.MASHGIACH_SPEED + difficulty.mashgiachSpeedBonus
                 )
             )
         }
@@ -286,13 +331,18 @@ class GameEngine(
         felafelBalls.clear()
         floatingTexts.clear()
         talmid.resetForLevel(playerStartX, floorTop)
-        menahel.resetForLevel(worldWidth * 0.72f, floorTop, level.menahelSpeed)
+        menahel.resetForLevel(
+            worldWidth * 0.72f, floorTop, level.menahelSpeed * difficulty.menahelSpeedFactor
+        )
 
         assistants.clear()
         if (Modifier.ASSISTANT_MENAHEL in level.modifiers) {
             val assistant = Menahel("ASST. MENAHEL")
             // Slightly slower than the boss, but he starts closer
-            assistant.resetForLevel(worldWidth * 0.45f, floorTop, level.menahelSpeed * 0.8f)
+            assistant.resetForLevel(
+                worldWidth * 0.45f, floorTop,
+                level.menahelSpeed * 0.8f * difficulty.menahelSpeedFactor
+            )
             assistants.add(assistant)
         }
 
@@ -363,7 +413,7 @@ class GameEngine(
 
     /** From level 10 the Menahel throws chalk with decades-honed accuracy. */
     private fun updateChalk() {
-        if (level.number >= 10 && !menahel.isStunned) {
+        if (level.number >= difficulty.chalkFromLevel && !menahel.isStunned) {
             chalkCooldown--
             if (chalkCooldown <= 0) {
                 chalkCooldown = 240 + Random.nextInt(200)
@@ -459,7 +509,7 @@ class GameEngine(
             r.update()
             if (r.tryCollect(talmid.centerX, talmid.centerY, 60f)) {
                 music.playSfx(Sfx.PICKUP)
-                score += GameConfig.SCORE_RUGELACH
+                addScore(GameConfig.SCORE_RUGELACH)
                 addFloatingText(
                     "+${GameConfig.SCORE_RUGELACH}",
                     r.baseX, r.baseY - 30f, Color.rgb(60, 140, 40)
@@ -470,7 +520,7 @@ class GameEngine(
             p.update()
             if (p.tryCollect(talmid.centerX, talmid.centerY, 65f)) {
                 music.playSfx(Sfx.POWERUP)
-                score += GameConfig.SCORE_POWER_UP
+                addScore(GameConfig.SCORE_POWER_UP)
                 when (p.type) {
                     PowerUpType.COFFEE -> talmid.applyCoffee()
                     PowerUpType.SELTZER -> talmid.applySeltzer()
@@ -561,7 +611,7 @@ class GameEngine(
         val seconds = levelFrames / 60
         val timeBonus = (GameConfig.TIME_BONUS_MAX - seconds * GameConfig.TIME_BONUS_DECAY_PER_SECOND)
             .coerceAtLeast(0)
-        score += GameConfig.SCORE_LEVEL_CLEAR + timeBonus
+        addScore(GameConfig.SCORE_LEVEL_CLEAR + timeBonus)
         music.playSfx(Sfx.LEVEL_CLEAR)
 
         if (seconds < 15) award(Achievement.ZRIZUS)
@@ -580,6 +630,11 @@ class GameEngine(
         } else {
             loadLevel(levelIndex + 1)
         }
+    }
+
+    /** All points flow through the difficulty's score multiplier. */
+    private fun addScore(points: Int) {
+        score += (points * difficulty.scoreFactor).toInt()
     }
 
     private fun recordStun() {
@@ -690,7 +745,8 @@ class GameEngine(
                 Achievement.values().count { prefs.isAchieved(it.name) },
                 prefs.getCounter("escapes")
             )
-            GamePhase.LEVEL_INTRO -> overlay.drawLevelIntro(canvas, level)
+            GamePhase.DIFFICULTY_SELECT -> overlay.drawDifficultySelect(canvas, difficultySelection)
+            GamePhase.LEVEL_INTRO -> overlay.drawLevelIntro(canvas, level, difficulty.label)
             GamePhase.PAUSED -> overlay.drawPaused(canvas)
             GamePhase.GAME_OVER -> overlay.drawGameOver(canvas, gameOverLine, score, highScore, newBest)
             GamePhase.VICTORY -> overlay.drawVictory(canvas, score, highScore, newBest)
