@@ -1,20 +1,26 @@
 package com.escapegame
 
 import android.content.Context
+import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import com.escapegame.core.GameConfig
 import com.escapegame.engine.GameEngine
+import com.escapegame.model.GamePhase
+import com.escapegame.render.TouchGamepadLayout
 
 /**
  * Thin Android layer: owns the surface, the render thread, and the mapping
- * from hardware keys to engine input.
+ * from hardware keys (or touches) to engine input.
  *
  * Controls are keypad-first for flip/bar phones — every action is reachable
  * from a T9 keypad (4/6 move, 2 jump, 5 confirm/run/shoot) as well as the
- * d-pad, with WASD/space as a bonus for keyboards.
+ * d-pad, with WASD/space as a bonus for keyboards. On touchscreen-only
+ * devices a Game Boy-style on-screen gamepad appears instead; it is never
+ * shown while a physical keypad/d-pad is in use.
  */
 class GameView(context: Context, private val engine: GameEngine) :
     SurfaceView(context), SurfaceHolder.Callback {
@@ -23,10 +29,20 @@ class GameView(context: Context, private val engine: GameEngine) :
     // Guards all engine access: input arrives on the UI thread while the game
     // thread runs update/draw
     private val engineLock = Any()
+    private var touchMode = false
 
     init {
         holder.addCallback(this)
         isFocusable = true
+        // Touchscreen-only device (no physical d-pad)? Show the on-screen
+        // gamepad from the start rather than waiting for the first tap.
+        val hasPhysicalDpad = resources.configuration.navigation == Configuration.NAVIGATION_DPAD
+        val hasTouchscreen =
+            context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+        if (!hasPhysicalDpad && hasTouchscreen) {
+            touchMode = true
+            engine.touchControlsEnabled = true
+        }
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -49,24 +65,39 @@ class GameView(context: Context, private val engine: GameEngine) :
         stopGameThread()
     }
 
+    // ------------------------------------------------------------- key input
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         synchronized(engineLock) {
-            when (keyCode) {
-                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_A ->
-                    engine.onLeft(true)
-                KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_D ->
-                    engine.onRight(true)
-                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_W ->
-                    engine.onJump()
+            val handled = when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_A -> {
+                    engine.onLeft(true); true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_D -> {
+                    engine.onRight(true); true
+                }
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_W -> {
+                    if (event.repeatCount == 0) engine.onJump(); true
+                }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_5,
-                KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ENTER ->
-                    engine.onActionDown()
-                KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_STAR ->
-                    engine.onPauseToggle()
-                else -> return super.onKeyDown(keyCode, event)
+                KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ENTER -> {
+                    if (event.repeatCount == 0) engine.onActionDown(); true
+                }
+                KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_STAR -> {
+                    if (event.repeatCount == 0) engine.onPauseToggle(); true
+                }
+                else -> false
+            }
+            if (handled) {
+                // Physical keys win: hide the touch gamepad
+                if (touchMode) {
+                    touchMode = false
+                    engine.touchControlsEnabled = false
+                }
+                return true
             }
         }
-        return true
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
@@ -88,10 +119,77 @@ class GameView(context: Context, private val engine: GameEngine) :
         return true
     }
 
+    // ----------------------------------------------------------- touch input
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        // Keypad/d-pad only; touch is intentionally a no-op
+        synchronized(engineLock) {
+            if (!touchMode) {
+                touchMode = true
+                engine.touchControlsEnabled = true
+            }
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                    handleTouchDown(event, event.actionIndex)
+                    refreshHeldControls(event, -1)
+                }
+                MotionEvent.ACTION_MOVE -> refreshHeldControls(event, -1)
+                MotionEvent.ACTION_POINTER_UP -> refreshHeldControls(event, event.actionIndex)
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> releaseAllTouchControls()
+            }
+        }
         return true
     }
+
+    /** Edge-triggered actions for a newly placed finger. */
+    private fun handleTouchDown(event: MotionEvent, pointerIndex: Int) {
+        if (engine.phase != GamePhase.PLAYING) {
+            // Overlay screens: any tap is the confirm button
+            engine.onActionDown()
+            return
+        }
+        when (TouchGamepadLayout.hit(worldX(event, pointerIndex), worldY(event, pointerIndex))) {
+            TouchGamepadLayout.Control.DPAD_UP,
+            TouchGamepadLayout.Control.BUTTON_B -> engine.onJump()
+            TouchGamepadLayout.Control.BUTTON_A -> engine.onActionDown()
+            TouchGamepadLayout.Control.START -> engine.onPauseToggle()
+            else -> Unit
+        }
+    }
+
+    /** Recomputes all hold-style controls from the fingers still down. */
+    private fun refreshHeldControls(event: MotionEvent, excludeIndex: Int) {
+        if (engine.phase != GamePhase.PLAYING) return
+        var left = false
+        var right = false
+        var runHeld = false
+        for (i in 0 until event.pointerCount) {
+            if (i == excludeIndex) continue
+            when (TouchGamepadLayout.hit(worldX(event, i), worldY(event, i))) {
+                TouchGamepadLayout.Control.DPAD_LEFT -> left = true
+                TouchGamepadLayout.Control.DPAD_RIGHT -> right = true
+                TouchGamepadLayout.Control.BUTTON_A -> runHeld = true
+                else -> Unit
+            }
+        }
+        engine.onLeft(left)
+        engine.onRight(right)
+        engine.onRunHeld(runHeld)
+    }
+
+    private fun releaseAllTouchControls() {
+        engine.onLeft(false)
+        engine.onRight(false)
+        engine.onRunHeld(false)
+        engine.onActionUp()
+    }
+
+    private fun worldX(event: MotionEvent, pointerIndex: Int): Float =
+        event.getX(pointerIndex) / width * GameConfig.WORLD_WIDTH
+
+    private fun worldY(event: MotionEvent, pointerIndex: Int): Float =
+        event.getY(pointerIndex) / height * GameConfig.WORLD_HEIGHT
+
+    // ------------------------------------------------------------ game loop
 
     // A stopped Thread cannot be restarted, so each start creates a fresh one
     private fun startGameThread() {

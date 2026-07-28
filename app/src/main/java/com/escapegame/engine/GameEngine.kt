@@ -19,7 +19,10 @@ import com.escapegame.model.PowerUpType
 import com.escapegame.persistence.HighScoreStore
 import com.escapegame.render.BackgroundRenderer
 import com.escapegame.render.HudRenderer
+import com.escapegame.render.GameBoyShellRenderer
 import com.escapegame.render.OverlayRenderer
+import com.escapegame.render.TouchGamepadLayout
+import com.escapegame.render.TouchGamepadRenderer
 import kotlin.random.Random
 
 /**
@@ -65,9 +68,18 @@ class GameEngine(private val highScores: HighScoreStore) {
     private var rightPressed = false
     private var runPressed = false
 
+    /**
+     * True when the on-screen Game Boy-style gamepad should be shown: set by
+     * the view when the device has no physical keypad/d-pad or the player
+     * touches the screen; cleared again the moment a physical key is used.
+     */
+    var touchControlsEnabled = false
+
     private val background = BackgroundRenderer()
     private val hud = HudRenderer()
     private val overlay = OverlayRenderer()
+    private val gamepad = TouchGamepadRenderer()
+    private val shell = GameBoyShellRenderer()
     private val floatingTextPaint = Paint().apply {
         textSize = 30f
         textAlign = Paint.Align.CENTER
@@ -106,6 +118,14 @@ class GameEngine(private val highScores: HighScoreStore) {
 
     fun onActionUp() {
         runPressed = false
+    }
+
+    /**
+     * Held state of the touch gamepad's A button: sustains running without
+     * firing another felafel (the initial press fires via [onActionDown]).
+     */
+    fun onRunHeld(held: Boolean) {
+        runPressed = held
     }
 
     fun onPauseToggle() {
@@ -374,6 +394,26 @@ class GameEngine(private val highScores: HighScoreStore) {
         canvas.save()
         canvas.scale(viewWidth / worldWidth, viewHeight / worldHeight)
 
+        if (touchControlsEnabled) {
+            // Full handheld-console look: shell around the LCD, game inside
+            // it, physical-style controls on the body below
+            shell.draw(canvas)
+            canvas.save()
+            canvas.translate(TouchGamepadLayout.screenOffsetX, TouchGamepadLayout.screenOffsetY)
+            canvas.scale(TouchGamepadLayout.screenScale, TouchGamepadLayout.screenScale)
+            canvas.clipRect(0f, 0f, worldWidth, worldHeight)
+            drawWorldAndUi(canvas)
+            canvas.restore()
+            gamepad.draw(canvas)
+        } else {
+            drawWorldAndUi(canvas)
+        }
+
+        canvas.restore()
+    }
+
+    /** Draws the game world plus HUD and overlays in virtual world coordinates. */
+    private fun drawWorldAndUi(canvas: Canvas) {
         background.draw(canvas, level.theme)
         background.drawPlatforms(canvas, platforms)
         background.drawExitDoor(canvas, doorLeft)
@@ -390,9 +430,12 @@ class GameEngine(private val highScores: HighScoreStore) {
                 canvas.drawText(t.text, t.x, t.y, floatingTextPaint)
             }
             hud.draw(canvas, score, highScore, lives, level, talmid)
-            hud.drawControlsHint(canvas, worldHeight)
+            if (!touchControlsEnabled) {
+                hud.drawControlsHint(canvas, worldHeight)
+            }
         }
 
+        overlay.touchMode = touchControlsEnabled
         when (phase) {
             GamePhase.INTRO -> overlay.drawIntro(canvas, highScore)
             GamePhase.LEVEL_INTRO -> overlay.drawLevelIntro(canvas, level)
@@ -401,8 +444,6 @@ class GameEngine(private val highScores: HighScoreStore) {
             GamePhase.VICTORY -> overlay.drawVictory(canvas, score, highScore, newBest)
             GamePhase.PLAYING -> Unit
         }
-
-        canvas.restore()
     }
 
     private class FloatingText(

@@ -22,6 +22,10 @@ between you and the 4:15 bus to freedom.
 - **Rugelach collectibles**, score with time bonuses, 3 lives (displayed as
   black hats, naturally), and a persistent high score
 - **Pause = Mincha Break**
+- **ESCAPE BOY™ mode** — on touchscreen-only devices the game becomes a full
+  retro handheld: game screen in the LCD up top, d-pad + A/B + START on the
+  body below ("DOT MATRIX WITH MUSSAR"). Never shown when a physical
+  keypad/d-pad is present — keypad phones get the full screen
 
 ## Controls (keypad / d-pad)
 
@@ -32,6 +36,9 @@ between you and the 4:15 bus to freedom.
 | `5` or OK / CENTER | Start · run · shoot felafel · confirm |
 | `*`, `P`, or MENU | Mincha break (pause) |
 | BACK | Exit the game |
+
+On touchscreens with no physical keys: d-pad moves, **B** jumps, **A** runs +
+shoots felafel, **START** pauses, and any tap confirms menus.
 
 ## Building
 

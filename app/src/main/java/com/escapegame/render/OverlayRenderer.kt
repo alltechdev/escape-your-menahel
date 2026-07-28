@@ -16,6 +16,9 @@ import com.escapegame.model.LevelDefinition
  */
 class OverlayRenderer {
 
+    /** When true, prompts say "tap" instead of naming keypad keys. */
+    var touchMode = false
+
     private val w = GameConfig.WORLD_WIDTH
     private val h = GameConfig.WORLD_HEIGHT
 
@@ -74,11 +77,19 @@ class OverlayRenderer {
         canvas.drawText("You left the beis medrash early.", w / 2, y, bodyPaint); y += lh
         canvas.drawText("He saw. He ALWAYS sees.", w / 2, y, bodyPaint); y += lh * 1.8f
 
-        canvas.drawText("KEYPAD / D-PAD CONTROLS", w / 2, y, accentPaint); y += lh * 1.2f
-        canvas.drawText("4 / 6  or  LEFT / RIGHT — move", w / 2, y, bodyPaint); y += lh
-        canvas.drawText("2  or  UP — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
-        canvas.drawText("5  or  OK — run + shoot felafel", w / 2, y, bodyPaint); y += lh
-        canvas.drawText("P / MENU — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.8f
+        if (touchMode) {
+            canvas.drawText("TOUCH CONTROLS", w / 2, y, accentPaint); y += lh * 1.2f
+            canvas.drawText("D-pad — move · ▲ — jump", w / 2, y, bodyPaint); y += lh
+            canvas.drawText("B — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
+            canvas.drawText("A — run + shoot felafel", w / 2, y, bodyPaint); y += lh
+            canvas.drawText("START — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.8f
+        } else {
+            canvas.drawText("KEYPAD / D-PAD CONTROLS", w / 2, y, accentPaint); y += lh * 1.2f
+            canvas.drawText("4 / 6  or  LEFT / RIGHT — move", w / 2, y, bodyPaint); y += lh
+            canvas.drawText("2  or  UP — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
+            canvas.drawText("5  or  OK — run + shoot felafel", w / 2, y, bodyPaint); y += lh
+            canvas.drawText("P / MENU — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.8f
+        }
 
         canvas.drawText("Grab rugelach. Chap the power-ups.", w / 2, y, bodyPaint); y += lh
         canvas.drawText("12 levels between you and the 4:15 bus.", w / 2, y, bodyPaint); y += lh * 1.6f
@@ -87,7 +98,7 @@ class OverlayRenderer {
             canvas.drawText("Best escape so far: $highScore", w / 2, y, bodyPaint)
         }
 
-        canvas.drawText("Press 5 / OK to start!", w / 2, h * 0.88f, accentPaint)
+        canvas.drawText(confirmPrompt("start"), w / 2, h * 0.88f, accentPaint)
         canvas.drawText("Est. 5747 · Accredited by absolutely nobody", w / 2, h * 0.93f, finePrintPaint)
     }
 
@@ -100,14 +111,14 @@ class OverlayRenderer {
         canvas.drawText("Level ${level.number} of ${Levels.all.size}", w / 2, h * 0.385f, bodyPaint)
         canvas.drawText(level.name, w / 2, h * 0.44f, headerPaint)
         drawWrapped(canvas, level.quip, w / 2, h * 0.50f, w * 0.72f)
-        canvas.drawText("5 / OK to go", w / 2, h * 0.595f, accentPaint)
+        canvas.drawText(confirmPrompt("go"), w / 2, h * 0.595f, accentPaint)
     }
 
     fun drawPaused(canvas: Canvas) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
         canvas.drawText("MINCHA BREAK", w / 2, h * 0.42f, headerPaint)
         canvas.drawText("(Paused. The Menahel waits. Patiently.)", w / 2, h * 0.47f, bodyPaint)
-        canvas.drawText("P / MENU or 5 / OK to resume", w / 2, h * 0.55f, accentPaint)
+        canvas.drawText(confirmPrompt("resume"), w / 2, h * 0.55f, accentPaint)
     }
 
     fun drawGameOver(canvas: Canvas, line: String, score: Int, highScore: Int, isNewBest: Boolean) {
@@ -120,7 +131,7 @@ class OverlayRenderer {
         } else {
             canvas.drawText("Best: $highScore", w / 2, h * 0.565f, bodyPaint)
         }
-        canvas.drawText("5 / OK to try again", w / 2, h * 0.66f, accentPaint)
+        canvas.drawText(confirmPrompt("try again"), w / 2, h * 0.66f, accentPaint)
     }
 
     fun drawVictory(canvas: Canvas, score: Int, highScore: Int, isNewBest: Boolean) {
@@ -143,8 +154,12 @@ class OverlayRenderer {
             canvas.drawText("Best: $highScore", w / 2, y, bodyPaint)
         }
 
-        canvas.drawText("5 / OK for another zman", w / 2, h * 0.75f, accentPaint)
+        canvas.drawText(confirmPrompt("start another zman"), w / 2, h * 0.75f, accentPaint)
     }
+
+    /** "Press 5 / OK to X" on keypads, "Tap to X" on touchscreens. */
+    private fun confirmPrompt(action: String): String =
+        if (touchMode) "Tap to $action" else "Press 5 / OK to $action"
 
     /** Rudimentary center-aligned word wrap for quips of unknown length. */
     private fun drawWrapped(canvas: Canvas, text: String, centerX: Float, startY: Float, maxWidth: Float) {
