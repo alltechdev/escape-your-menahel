@@ -13,10 +13,12 @@ import com.escapegame.entities.Rugelach
 import com.escapegame.entities.Talmid
 import com.escapegame.levels.Levels
 import com.escapegame.model.GamePhase
+import com.escapegame.model.Modifier
 import com.escapegame.model.LevelDefinition
 import com.escapegame.model.Platform
 import com.escapegame.model.PowerUpType
 import com.escapegame.audio.MusicEngine
+import com.escapegame.audio.Sfx
 import com.escapegame.persistence.GamePrefs
 import com.escapegame.render.BackgroundRenderer
 import com.escapegame.render.HudRenderer
@@ -51,6 +53,7 @@ class GameEngine(
 
     private val talmid = Talmid()
     private val menahel = Menahel()
+    private val assistants = mutableListOf<Menahel>()
     private val mashgichim = mutableListOf<Mashgiach>()
     private val platforms = mutableListOf<Platform>()
     private val felafelBalls = mutableListOf<FelafelBall>()
@@ -64,6 +67,8 @@ class GameEngine(
     private var lives = GameConfig.STARTING_LIVES
     private var levelFrames = 0
     private var phaseFrames = 0
+    /** Frames until the van leaves without you; -1 when the level has no timer. */
+    private var vanFrames = -1
     private var highScore = prefs.getHighScore()
     private var newBest = false
     private var gameOverLine = Levels.gameOverLines.first()
@@ -112,6 +117,12 @@ class GameEngine(
         typeface = Typeface.DEFAULT_BOLD
         style = Paint.Style.FILL
     }
+    // DARK modifier: a huge stroked ring leaves a lit circle around the talmid
+    private val darknessPaint = Paint().apply {
+        color = Color.argb(233, 5, 5, 14)
+        style = Paint.Style.STROKE
+        strokeWidth = 4200f
+    }
 
     // ---------------------------------------------------------------- input
 
@@ -124,7 +135,9 @@ class GameEngine(
     }
 
     fun onJump() {
-        if (phase == GamePhase.PLAYING) talmid.jump()
+        if (phase == GamePhase.PLAYING && talmid.jump()) {
+            music.playSfx(Sfx.JUMP)
+        }
     }
 
     /** CENTER / 5 / OK pressed: the universal confirm-and-action button. */
@@ -134,7 +147,10 @@ class GameEngine(
             GamePhase.LEVEL_INTRO -> beginPlay()
             GamePhase.PLAYING -> {
                 runPressed = true
-                talmid.shootFelafel()?.let { felafelBalls.add(it) }
+                talmid.shootFelafel()?.let {
+                    felafelBalls.add(it)
+                    music.playSfx(Sfx.THROW)
+                }
             }
             GamePhase.PAUSED -> resumePlay()
             GamePhase.GAME_OVER -> startNewGame()
@@ -252,6 +268,19 @@ class GameEngine(
         talmid.resetForLevel(playerStartX, floorTop)
         menahel.resetForLevel(worldWidth * 0.72f, floorTop, level.menahelSpeed)
 
+        assistants.clear()
+        if (Modifier.ASSISTANT_MENAHEL in level.modifiers) {
+            val assistant = Menahel("ASST. MENAHEL")
+            // Slightly slower than the boss, but he starts closer
+            assistant.resetForLevel(worldWidth * 0.45f, floorTop, level.menahelSpeed * 0.8f)
+            assistants.add(assistant)
+        }
+
+        talmid.frictionFactor =
+            if (Modifier.SLIPPERY in level.modifiers) 0.975f else GameConfig.PLAYER_FRICTION
+        talmid.windEnabled = Modifier.WIND in level.modifiers
+        vanFrames = level.timeLimitSeconds?.times(60) ?: -1
+
         levelFrames = 0
         phaseFrames = 0
     }
@@ -289,7 +318,15 @@ class GameEngine(
 
         talmid.update(worldWidth, floorTop, platforms)
         menahel.update(talmid.centerX, worldWidth, floorTop, platforms)
+        for (a in assistants) a.update(talmid.centerX, worldWidth, floorTop, platforms)
         for (m in mashgichim) m.update()
+
+        if (vanFrames > 0) {
+            vanFrames--
+            if (vanFrames == 0) {
+                onVanLeft()
+            }
+        }
 
         updateFelafel()
         updatePickups()
@@ -309,7 +346,24 @@ class GameEngine(
             }
             if (ball.hits(menahel.centerX, menahel.centerY, GameConfig.MENAHEL_CATCH_DISTANCE)) {
                 menahel.stun()
+                music.playSfx(Sfx.STUN)
                 addFloatingText("BULLSEYE!", menahel.centerX, menahel.y - 40f, Color.rgb(255, 160, 40))
+                iterator.remove()
+                continue
+            }
+            var hitAssistant = false
+            for (a in assistants) {
+                if (!a.isStunned &&
+                    ball.hits(a.centerX, a.centerY, GameConfig.MENAHEL_CATCH_DISTANCE)
+                ) {
+                    a.stun()
+                    music.playSfx(Sfx.STUN)
+                    addFloatingText("Also him!", a.centerX, a.y - 40f, Color.rgb(255, 160, 40))
+                    hitAssistant = true
+                    break
+                }
+            }
+            if (hitAssistant) {
                 iterator.remove()
                 continue
             }
@@ -319,6 +373,7 @@ class GameEngine(
                     ball.hits(m.centerX, m.centerY, GameConfig.MASHGIACH_CATCH_DISTANCE)
                 ) {
                     m.stun()
+                    music.playSfx(Sfx.STUN)
                     addFloatingText("Lost his place!", m.centerX, m.y - 40f, Color.rgb(255, 160, 40))
                     hitPatroller = true
                     break
@@ -332,6 +387,7 @@ class GameEngine(
         for (r in rugelach) {
             r.update()
             if (r.tryCollect(talmid.centerX, talmid.centerY, 60f)) {
+                music.playSfx(Sfx.PICKUP)
                 score += GameConfig.SCORE_RUGELACH
                 addFloatingText(
                     "+${GameConfig.SCORE_RUGELACH}",
@@ -342,6 +398,7 @@ class GameEngine(
         for (p in powerUps) {
             p.update()
             if (p.tryCollect(talmid.centerX, talmid.centerY, 65f)) {
+                music.playSfx(Sfx.POWERUP)
                 score += GameConfig.SCORE_POWER_UP
                 when (p.type) {
                     PowerUpType.COFFEE -> talmid.applyCoffee()
@@ -362,6 +419,14 @@ class GameEngine(
             onCaught()
             return
         }
+        for (a in assistants) {
+            if (!a.isStunned &&
+                withinDistance(a.centerX, a.centerY, GameConfig.MENAHEL_CATCH_DISTANCE)
+            ) {
+                onCaught()
+                return
+            }
+        }
         for (m in mashgichim) {
             if (!m.isStunned &&
                 withinDistance(m.centerX, m.centerY, GameConfig.MASHGIACH_CATCH_DISTANCE)
@@ -381,13 +446,23 @@ class GameEngine(
     private fun onCaught() {
         if (talmid.consumeShield()) {
             menahel.stun()
+            music.playSfx(Sfx.STUN)
             addFloatingText(
                 "The kugel took the hit!",
                 talmid.centerX, talmid.y - 70f, Color.rgb(200, 150, 0)
             )
             return
         }
+        loseLife("CAUGHT! Minus one hat.")
+    }
 
+    private fun onVanLeft() {
+        loseLife("THE VAN LEFT! ...It's circling the block. GO!")
+        vanFrames = level.timeLimitSeconds?.times(60) ?: -1
+    }
+
+    private fun loseLife(message: String) {
+        music.playSfx(Sfx.CAUGHT)
         lives--
         if (lives <= 0) {
             gameOverLine = Levels.gameOverLines[Random.nextInt(Levels.gameOverLines.size)]
@@ -397,7 +472,7 @@ class GameEngine(
             phaseFrames = 0
         } else {
             addFloatingText(
-                "CAUGHT! Minus one hat.",
+                message,
                 talmid.centerX, talmid.y - 70f, Color.rgb(220, 40, 40)
             )
             talmid.respawn(playerStartX, floorTop)
@@ -415,6 +490,7 @@ class GameEngine(
         val timeBonus = (GameConfig.TIME_BONUS_MAX - seconds * GameConfig.TIME_BONUS_DECAY_PER_SECOND)
             .coerceAtLeast(0)
         score += GameConfig.SCORE_LEVEL_CLEAR + timeBonus
+        music.playSfx(Sfx.LEVEL_CLEAR)
 
         if (levelIndex + 1 >= Levels.all.size) {
             newBest = prefs.submitScore(score)
@@ -484,13 +560,22 @@ class GameEngine(
             for (p in powerUps) p.draw(canvas)
             for (m in mashgichim) m.draw(canvas)
             menahel.draw(canvas, worldWidth)
+            for (a in assistants) a.draw(canvas, worldWidth)
             talmid.draw(canvas)
             for (ball in felafelBalls) ball.draw(canvas)
             for (t in floatingTexts) {
                 floatingTextPaint.color = t.color
                 canvas.drawText(t.text, t.x, t.y, floatingTextPaint)
             }
-            hud.draw(canvas, score, highScore, lives, level, talmid)
+            if (Modifier.DARK in level.modifiers && phase == GamePhase.PLAYING) {
+                // Everything outside the talmid's little circle of light
+                canvas.drawCircle(
+                    talmid.centerX, talmid.centerY,
+                    300f + darknessPaint.strokeWidth / 2, darknessPaint
+                )
+            }
+            val vanSeconds = if (vanFrames >= 0) (vanFrames + 59) / 60 else null
+            hud.draw(canvas, score, highScore, lives, level, talmid, vanSeconds)
             if (!touchControlsEnabled) {
                 hud.drawControlsHint(canvas, worldHeight)
             }

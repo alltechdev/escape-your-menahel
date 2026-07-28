@@ -17,7 +17,7 @@ import kotlin.random.Random
  * stunned by a well-aimed felafel, and periodically yells mussar in a speech
  * bubble.
  */
-class Menahel {
+class Menahel(private val title: String = "MENAHEL") {
     var x = 500f
         private set
     var y = 500f
@@ -182,7 +182,7 @@ class Menahel {
         canvas.drawOval(x + 3, y + height - 11, x + 26, y + height + 4, shoePaint)
         canvas.drawOval(x + s - 26, y + height - 11, x + s - 3, y + height + 4, shoePaint)
 
-        canvas.drawText("MENAHEL", x + s / 2, y + height + 26, labelPaint)
+        canvas.drawText(title, x + s / 2, y + height + 26, labelPaint)
 
         if (isStunned) {
             canvas.drawText("*sees stars*", x + s / 2, y - 60, stunTextPaint)

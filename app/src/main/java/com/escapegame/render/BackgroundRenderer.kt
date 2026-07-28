@@ -53,7 +53,8 @@ class BackgroundRenderer(private val w: Float, private val h: Float) {
     private fun drawWallsAndFloor(canvas: Canvas, theme: LevelTheme) {
         val outdoors = theme == LevelTheme.ROOFTOP ||
             theme == LevelTheme.PARKING_LOT ||
-            theme == LevelTheme.BUS_STOP
+            theme == LevelTheme.BUS_STOP ||
+            theme == LevelTheme.SUKKAH
 
         fillPaint.color = when (theme) {
             LevelTheme.LUNCHROOM -> Color.rgb(240, 240, 220)
@@ -67,6 +68,11 @@ class BackgroundRenderer(private val w: Float, private val h: Float) {
             LevelTheme.ROOFTOP -> Color.rgb(160, 210, 245)
             LevelTheme.PARKING_LOT -> Color.rgb(175, 215, 240)
             LevelTheme.BUS_STOP -> Color.rgb(255, 205, 150) // late-afternoon sky
+            LevelTheme.COAT_ROOM -> Color.rgb(205, 200, 190)
+            LevelTheme.MIKVEH -> Color.rgb(195, 225, 235)
+            LevelTheme.SUKKAH -> Color.rgb(150, 205, 240)
+            LevelTheme.SHUL -> Color.rgb(238, 232, 214)
+            LevelTheme.SIMCHA_HALL -> Color.rgb(242, 235, 245)
         }
         canvas.drawRect(0f, 0f, w, h, fillPaint)
 
@@ -229,6 +235,98 @@ class BackgroundRenderer(private val w: Float, private val h: Float) {
                 textPaint.color = Color.BLACK
                 textPaint.textSize = 30f
                 canvas.drawText("4:15 EXPRESS", 710f, 275f, textPaint)
+            }
+            LevelTheme.COAT_ROOM -> {
+                // A rack of four hundred identical black coats
+                strokePaint.color = Color.rgb(90, 90, 95)
+                canvas.drawLine(60f, 180f, w - 60f, 180f, strokePaint)
+                fillPaint.color = Color.rgb(20, 20, 24)
+                var cx = 90f
+                while (cx < w - 120f) {
+                    canvas.drawCircle(cx + 30f, 192f, 7f, fillPaint) // hanger hook
+                    canvas.drawRect(cx, 205f, cx + 62f, 420f, fillPaint)
+                    cx += 74f
+                }
+                drawWallSign(canvas, w / 2, 520f, "LOST & NEVER FOUND")
+            }
+            LevelTheme.MIKVEH -> {
+                // Tiled wall
+                strokePaint.color = Color.rgb(140, 180, 195)
+                var ty = 140f
+                while (ty < 460f) {
+                    canvas.drawLine(60f, ty, w - 60f, ty, strokePaint)
+                    ty += 64f
+                }
+                var tx2 = 60f
+                while (tx2 < w - 60f) {
+                    canvas.drawLine(tx2, 140f, tx2, 460f, strokePaint)
+                    tx2 += 64f
+                }
+                // Towel hooks with towels
+                fillPaint.color = Color.WHITE
+                canvas.drawRect(150f, 240f, 220f, 400f, fillPaint)
+                canvas.drawRect(300f, 240f, 370f, 400f, fillPaint)
+                // Puddles by the floor
+                fillPaint.color = Color.rgb(160, 205, 225)
+                canvas.drawOval(180f, floorTop - 18f, 360f, floorTop + 4f, fillPaint)
+                canvas.drawOval(520f, floorTop - 14f, 660f, floorTop + 2f, fillPaint)
+                drawWallSign(canvas, w / 2, 540f, "NO RUNNING (WET FLOOR)")
+            }
+            LevelTheme.SUKKAH -> {
+                // Schach across the top
+                fillPaint.color = Color.rgb(90, 140, 60)
+                var sx = 0f
+                while (sx < w) {
+                    canvas.drawRect(sx, 60f, sx + 70f, 130f, fillPaint)
+                    sx += 90f
+                }
+                // Wooden walls at the sides
+                fillPaint.color = Color.rgb(150, 105, 55)
+                canvas.drawRect(0f, 130f, 70f, floorTop, fillPaint)
+                canvas.drawRect(w - 70f, 130f, w, floorTop, fillPaint)
+                // Paper-chain decorations hanging from the schach
+                strokePaint.color = Color.rgb(90, 140, 60)
+                canvas.drawLine(220f, 130f, 220f, 250f, strokePaint)
+                canvas.drawLine(w / 2, 130f, w / 2, 300f, strokePaint)
+                fillPaint.color = Color.rgb(210, 60, 60)
+                canvas.drawCircle(220f, 270f, 20f, fillPaint)
+                fillPaint.color = Color.rgb(60, 110, 210)
+                canvas.drawCircle(w / 2, 320f, 20f, fillPaint)
+                drawWallSign(canvas, w - 260f, 250f, "NOI SUKKAH 5747")
+            }
+            LevelTheme.SHUL -> {
+                // The aron with its paroches
+                fillPaint.color = Color.rgb(90, 30, 40)
+                canvas.drawRect(w / 2 - 140f, 150f, w / 2 + 140f, 430f, fillPaint)
+                strokePaint.color = Color.rgb(220, 190, 90)
+                canvas.drawRect(w / 2 - 140f, 150f, w / 2 + 140f, 430f, strokePaint)
+                canvas.drawLine(w / 2, 150f, w / 2, 430f, strokePaint)
+                // Stained-glass windows
+                fillPaint.color = Color.rgb(120, 160, 220)
+                canvas.drawOval(120f, 160f, 240f, 340f, fillPaint)
+                canvas.drawOval(w - 240f, 160f, w - 120f, 340f, fillPaint)
+                fillPaint.color = Color.rgb(220, 160, 90)
+                canvas.drawOval(150f, 200f, 210f, 300f, fillPaint)
+                canvas.drawOval(w - 210f, 200f, w - 150f, 300f, fillPaint)
+                drawWallSign(canvas, w / 2, 520f, "KIDDUSH SPONSORED ANONYMOUSLY")
+            }
+            LevelTheme.SIMCHA_HALL -> {
+                // Chandelier
+                strokePaint.color = Color.rgb(190, 160, 60)
+                canvas.drawLine(w / 2, 60f, w / 2, 160f, strokePaint)
+                fillPaint.color = Color.rgb(245, 225, 130)
+                canvas.drawCircle(w / 2, 190f, 45f, fillPaint)
+                canvas.drawCircle(w / 2 - 70f, 210f, 22f, fillPaint)
+                canvas.drawCircle(w / 2 + 70f, 210f, 22f, fillPaint)
+                // Round tables with white cloths
+                fillPaint.color = Color.WHITE
+                canvas.drawOval(90f, floorTop - 90f, 300f, floorTop - 20f, fillPaint)
+                canvas.drawOval(w - 300f, floorTop - 90f, w - 90f, floorTop - 20f, fillPaint)
+                // Flowers on the tables
+                fillPaint.color = Color.rgb(220, 90, 140)
+                canvas.drawCircle(195f, floorTop - 95f, 12f, fillPaint)
+                canvas.drawCircle(w - 195f, floorTop - 95f, 12f, fillPaint)
+                drawWallSign(canvas, w / 2, 320f, "MAZEL TOV! (WHOSE? UNCLEAR)")
             }
         }
     }

@@ -22,7 +22,12 @@ enum class LevelTheme {
     DETENTION,
     ROOFTOP,
     PARKING_LOT,
-    BUS_STOP
+    BUS_STOP,
+    COAT_ROOM,
+    MIKVEH,
+    SUKKAH,
+    SHUL,
+    SIMCHA_HALL
 }
 
 /** Power-up varieties and their on-screen labels. */
@@ -30,6 +35,14 @@ enum class PowerUpType(val label: String) {
     COFFEE("KAVANA COFFEE! Speed boost!"),
     SELTZER("SELTZER! Triple jump!"),
     KUGEL("KUGEL SHIELD! One free catch!")
+}
+
+/** Per-level gameplay twists, announced on the level card. */
+enum class Modifier(val announcement: String) {
+    SLIPPERY("WET FLOOR! No traction!"),
+    DARK("LIGHTS OUT! Stay close to your ner!"),
+    WIND("WINDY! Hold onto your hat!"),
+    ASSISTANT_MENAHEL("TWO MENAHELIM?! Oy!")
 }
 
 /** A solid platform in world (pixel) coordinates. */
@@ -64,5 +77,8 @@ data class LevelDefinition(
     val platforms: List<PlatformSpec>,
     val rugelach: List<RugelachSpec>,
     val powerUps: List<PowerUpSpec> = emptyList(),
-    val patrollers: List<PatrollerSpec> = emptyList()
+    val patrollers: List<PatrollerSpec> = emptyList(),
+    val modifiers: Set<Modifier> = emptySet(),
+    /** If set, the level must be finished before the van leaves. */
+    val timeLimitSeconds: Int? = null
 )

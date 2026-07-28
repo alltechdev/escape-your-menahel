@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import com.escapegame.core.GameConfig
 import com.escapegame.model.Platform
+import kotlin.math.sin
 
 /**
  * The player: a young talmid making a break for it.
@@ -40,6 +41,10 @@ class Talmid {
         private set
     var invincibleFrames = 0
         private set
+
+    /** Per-level modifiers, set by the engine when a level loads. */
+    var frictionFactor = GameConfig.PLAYER_FRICTION
+    var windEnabled = false
 
     val isInvincible: Boolean get() = invincibleFrames > 0
 
@@ -95,13 +100,16 @@ class Talmid {
         invincibleFrames = 0
     }
 
-    fun jump() {
+    /** Returns true if a jump actually happened (for sound effects). */
+    fun jump(): Boolean {
         val maxJumps =
             if (seltzerFrames > 0) GameConfig.PLAYER_SELTZER_JUMPS else GameConfig.PLAYER_BASE_JUMPS
         if (jumpCount < maxJumps) {
             velocityY = GameConfig.PLAYER_JUMP_POWER
             jumpCount++
+            return true
         }
+        return false
     }
 
     fun moveLeft(isRunning: Boolean) {
@@ -166,10 +174,14 @@ class Talmid {
 
         velocityY += GameConfig.GRAVITY
         if (!running) {
-            velocityX *= GameConfig.PLAYER_FRICTION
+            velocityX *= frictionFactor
         }
 
         x += velocityX
+        if (windEnabled) {
+            // Gusts sway sinusoidally; strong enough to notice mid-jump
+            x += sin(animFrame * 0.02) .toFloat() * 2.4f
+        }
         if (x < 0f) {
             x = 0f
             velocityX = 0f
