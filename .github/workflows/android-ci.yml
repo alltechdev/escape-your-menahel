@@ -4,6 +4,12 @@ on:
   push:
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Publish a release under this tag (e.g. v2.0.0)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -40,11 +46,13 @@ jobs:
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
-      # Pushing a tag (e.g. v2.0.0) publishes a GitHub Release with the APK
+      # Pushing a tag (e.g. v2.0.0) publishes a GitHub Release with the APK;
+      # a manual dispatch with release_tag does the same and creates the tag
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
         uses: softprops/action-gh-release@v2
         with:
-          name: Escape Your Menahel ${{ github.ref_name }}
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: Escape Your Menahel ${{ github.event.inputs.release_tag || github.ref_name }}
           files: app/build/outputs/apk/release/app-release.apk
           generate_release_notes: true
