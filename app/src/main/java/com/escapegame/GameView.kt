@@ -35,6 +35,9 @@ class GameView(context: Context, private val engine: GameEngine) :
     // keypad devices: no shell, no on-screen controls, touches ignored.
     private val hasPhysicalDpad =
         resources.configuration.navigation == Configuration.NAVIGATION_DPAD
+    // Last control each finger was on, so sliding into the jump zones
+    // (rocking the d-pad up, or onto B) still triggers an edge jump
+    private val pointerControls = HashMap<Int, TouchGamepadLayout.Control>()
 
     init {
         holder.addCallback(this)
@@ -152,7 +155,10 @@ class GameView(context: Context, private val engine: GameEngine) :
                 }
                 MotionEvent.ACTION_MOVE -> refreshHeldControls(event, -1)
                 MotionEvent.ACTION_POINTER_UP -> refreshHeldControls(event, event.actionIndex)
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> releaseAllTouchControls()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    pointerControls.clear()
+                    releaseAllTouchControls()
+                }
             }
         }
         return true
@@ -201,13 +207,30 @@ class GameView(context: Context, private val engine: GameEngine) :
 
     /** Recomputes all hold-style controls from the fingers still down. */
     private fun refreshHeldControls(event: MotionEvent, excludeIndex: Int) {
-        if (engine.phase != GamePhase.PLAYING) return
+        if (engine.phase != GamePhase.PLAYING) {
+            pointerControls.clear()
+            return
+        }
         var left = false
         var right = false
         var runHeld = false
         for (i in 0 until event.pointerCount) {
-            if (i == excludeIndex) continue
-            when (TouchGamepadLayout.hit(worldX(event, i), worldY(event, i))) {
+            val pointerId = event.getPointerId(i)
+            if (i == excludeIndex) {
+                pointerControls.remove(pointerId)
+                continue
+            }
+            val control = TouchGamepadLayout.hit(worldX(event, i), worldY(event, i))
+            // Sliding into a jump zone (d-pad rocked up, or onto B) counts
+            // as a fresh press
+            val previous = pointerControls.put(pointerId, control)
+            if (previous != null && previous != control &&
+                (control == TouchGamepadLayout.Control.DPAD_UP ||
+                    control == TouchGamepadLayout.Control.BUTTON_B)
+            ) {
+                engine.onJump()
+            }
+            when (control) {
                 TouchGamepadLayout.Control.DPAD_LEFT -> left = true
                 TouchGamepadLayout.Control.DPAD_RIGHT -> right = true
                 TouchGamepadLayout.Control.BUTTON_A -> runHeld = true

@@ -153,6 +153,7 @@ class TouchGamepadRenderer {
         drawArrow(canvas, cx - arm + 32f, cy, -1f, 0f)
         drawArrow(canvas, cx + arm - 32f, cy, 1f, 0f)
         drawArrow(canvas, cx, cy - arm + 32f, 0f, -1f)
+        drawArrow(canvas, cx, cy + arm - 32f, 0f, 1f)
 
         // B then A (A overlaps on top, like the real thing)
         canvas.drawCircle(TouchGamepadLayout.B_CX, TouchGamepadLayout.B_CY, TouchGamepadLayout.BUTTON_RADIUS, buttonPaint)

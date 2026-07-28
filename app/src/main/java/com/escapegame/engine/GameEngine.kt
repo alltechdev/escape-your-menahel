@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import com.escapegame.core.GameConfig
+import com.escapegame.entities.CandyMan
 import com.escapegame.entities.Chalk
 import com.escapegame.entities.FelafelBall
 import com.escapegame.entities.Mashgiach
@@ -62,6 +63,8 @@ class GameEngine(
     private val platforms = mutableListOf<Platform>()
     private val felafelBalls = mutableListOf<FelafelBall>()
     private val chalks = mutableListOf<Chalk>()
+    private var candyMan: CandyMan? = null
+    private var candyManSpawnedThisLevel = false
     private val rugelach = mutableListOf<Rugelach>()
     private val powerUps = mutableListOf<PowerUp>()
     private val floatingTexts = mutableListOf<FloatingText>()
@@ -76,6 +79,9 @@ class GameEngine(
     private var vanFrames = -1
     private var chalkCooldown = 300
     private var runLivesLost = 0
+    // Chazaka: three quick rugelach start a x2 chain
+    private var comboCount = 0
+    private var comboFrames = 0
     // PA announcement state
     private var paCooldown = 1600
     private var paText: String? = null
@@ -291,8 +297,10 @@ class GameEngine(
                 }
             }
             GamePhase.PAUSED -> resumePlay()
-            GamePhase.GAME_OVER -> startNewGame()
-            GamePhase.VICTORY -> resetToIntro()
+            // Half-second debounce so a thumb still on the controls when a
+            // run ends can't skip these screens instantly
+            GamePhase.GAME_OVER -> if (phaseFrames > 30) startNewGame()
+            GamePhase.VICTORY -> if (phaseFrames > 30) resetToIntro()
         }
     }
 
@@ -432,6 +440,10 @@ class GameEngine(
             if (Modifier.SLIPPERY in level.modifiers) 0.975f else GameConfig.PLAYER_FRICTION
         talmid.windEnabled = Modifier.WIND in level.modifiers
         vanFrames = level.timeLimitSeconds?.times(60) ?: -1
+        candyMan = null
+        candyManSpawnedThisLevel = false
+        comboCount = 0
+        comboFrames = 0
         chalks.clear()
         chalkCooldown = 300 + Random.nextInt(180)
         paText = null
@@ -485,6 +497,11 @@ class GameEngine(
         }
 
         updateChalk()
+        updateCandyMan()
+        if (comboFrames > 0) {
+            comboFrames--
+            if (comboFrames == 0) comboCount = 0
+        }
         updateAnnouncements()
         updateFelafel()
         updatePickups()
@@ -518,6 +535,42 @@ class GameEngine(
                 music.playSfx(Sfx.STUN)
                 addFloatingText("GOT MUSSAR'D! Slowed!", talmid.centerX, talmid.y - 70f, Color.rgb(180, 60, 60))
                 iterator.remove()
+            }
+        }
+    }
+
+    /** Rarely, once per level, the Candy Man shuffles through with a treat. */
+    private fun updateCandyMan() {
+        val current = candyMan
+        if (current == null) {
+            if (!candyManSpawnedThisLevel && Random.nextInt(3200) == 0) {
+                candyManSpawnedThisLevel = true
+                candyMan = CandyMan(Random.nextBoolean(), worldWidth, floorTop)
+            }
+            return
+        }
+        current.update()
+        if (!current.active) {
+            candyMan = null
+            return
+        }
+        if (!current.collected &&
+            withinDistance(current.centerX, current.centerY, 60f)
+        ) {
+            current.collect()
+            music.playSfx(Sfx.POWERUP)
+            if (lives < 5) {
+                lives++
+                addFloatingText(
+                    "THE CANDY MAN! +1 hat!",
+                    current.centerX, current.y - 60f, Color.rgb(200, 60, 160)
+                )
+            } else {
+                addScore(300)
+                addFloatingText(
+                    "THE CANDY MAN! +300!",
+                    current.centerX, current.y - 60f, Color.rgb(200, 60, 160)
+                )
             }
         }
     }
@@ -591,9 +644,20 @@ class GameEngine(
             r.update()
             if (r.tryCollect(talmid.centerX, talmid.centerY, 60f)) {
                 music.playSfx(Sfx.PICKUP)
-                addScore(GameConfig.SCORE_RUGELACH)
+                comboCount++
+                comboFrames = 240
+                val chazaka = comboCount >= 3
+                val points =
+                    if (chazaka) GameConfig.SCORE_RUGELACH * 2 else GameConfig.SCORE_RUGELACH
+                addScore(points)
+                if (comboCount == 3) {
+                    addFloatingText(
+                        "CHAZAKA! Rugelach x2!",
+                        r.baseX, r.baseY - 55f, Color.rgb(255, 170, 40), 140
+                    )
+                }
                 addFloatingText(
-                    "+${GameConfig.SCORE_RUGELACH}",
+                    "+$points",
                     r.baseX, r.baseY - 30f, Color.rgb(60, 140, 40)
                 )
             }
@@ -811,6 +875,7 @@ class GameEngine(
             talmid.draw(canvas)
             for (ball in felafelBalls) ball.draw(canvas)
             for (chalk in chalks) chalk.draw(canvas)
+            candyMan?.draw(canvas)
             for (t in floatingTexts) {
                 floatingTextPaint.color = t.color
                 canvas.drawText(t.text, t.x, t.y, floatingTextPaint)
