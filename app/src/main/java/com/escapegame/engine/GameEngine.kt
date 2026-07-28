@@ -14,6 +14,7 @@ import com.escapegame.entities.Rugelach
 import com.escapegame.entities.Talmid
 import com.escapegame.levels.Levels
 import com.escapegame.model.Achievement
+import com.escapegame.model.Difficulty
 import com.escapegame.model.GamePhase
 import com.escapegame.model.Modifier
 import com.escapegame.model.LevelDefinition
@@ -21,6 +22,7 @@ import com.escapegame.model.Platform
 import com.escapegame.model.PowerUpType
 import com.escapegame.audio.MusicEngine
 import com.escapegame.audio.Sfx
+import com.escapegame.net.LeaderboardClient
 import com.escapegame.persistence.GamePrefs
 import com.escapegame.render.BackgroundRenderer
 import com.escapegame.render.HudRenderer
@@ -86,6 +88,19 @@ class GameEngine(
     private var rightPressed = false
     private var runPressed = false
 
+    private var difficulty = loadDifficulty()
+    private var difficultySelection = 0
+    private var endlessMode = false
+    private var modeSelection = 0
+    private var endlessSeed = Random.nextLong()
+    private val leaderboard = LeaderboardClient()
+
+    private fun loadDifficulty(): Difficulty = try {
+        Difficulty.valueOf(prefs.getDifficultyName(Difficulty.BAAL_HABOS.name))
+    } catch (e: IllegalArgumentException) {
+        Difficulty.BAAL_HABOS
+    }
+
     init {
         // Populate level 1 so the intro screen has a real backdrop
         buildLevel(0)
@@ -147,22 +162,126 @@ class GameEngine(
 
     fun onLeft(pressed: Boolean) {
         leftPressed = pressed
+        if (!pressed) return
+        when (phase) {
+            GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(-1)
+            GamePhase.MODE_SELECT -> moveModeSelection()
+            else -> Unit
+        }
     }
 
     fun onRight(pressed: Boolean) {
         rightPressed = pressed
+        if (!pressed) return
+        when (phase) {
+            GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(1)
+            GamePhase.MODE_SELECT -> moveModeSelection()
+            else -> Unit
+        }
     }
 
     fun onJump() {
-        if (phase == GamePhase.PLAYING && talmid.jump()) {
-            music.playSfx(Sfx.JUMP)
+        when (phase) {
+            GamePhase.PLAYING -> if (talmid.jump()) music.playSfx(Sfx.JUMP)
+            GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(-1)
+            GamePhase.MODE_SELECT -> moveModeSelection()
+            else -> Unit
+        }
+    }
+
+    /** DOWN / 8: menu navigation, or the leaderboard from the title screen. */
+    fun onMenuDown() {
+        when (phase) {
+            GamePhase.DIFFICULTY_SELECT -> moveDifficultySelection(1)
+            GamePhase.MODE_SELECT -> moveModeSelection()
+            GamePhase.INTRO -> onLeaderboardKey()
+            else -> Unit
+        }
+    }
+
+    private fun moveModeSelection() {
+        modeSelection = 1 - modeSelection
+        music.playSfx(Sfx.PICKUP)
+    }
+
+    private fun moveDifficultySelection(delta: Int) {
+        val count = Difficulty.values().size
+        difficultySelection = (difficultySelection + delta + count) % count
+        music.playSfx(Sfx.PICKUP)
+    }
+
+    /** Key 7 / SELECT on the title screen: show the global leaderboard. */
+    fun onLeaderboardKey() {
+        if (phase == GamePhase.INTRO) {
+            leaderboard.refresh()
+            phase = GamePhase.LEADERBOARD
+            phaseFrames = 0
+        }
+    }
+
+    /**
+     * The score-submission code shown at the end of a run: score plus a
+     * checksum the leaderboard workflow verifies. Honor-system-grade.
+     */
+    private fun submitCode(): String =
+        score.toString() + "-" + ((score.toLong() * 7919L + 5747L) % 99991L)
+
+    /** Fire-and-forget auto-submission; the game never waits on it. */
+    private fun submitRunScore() {
+        if (score <= 0) return
+        leaderboard.submitScore(
+            prefs.getPlayerName(),
+            score,
+            if (endlessMode) "endless" else "story",
+            difficulty.name
+        )
+    }
+
+    /** Status line for the end screens; everything degrades to a manual code. */
+    private fun leaderboardStatusLine(): String = when (leaderboard.submitState) {
+        LeaderboardClient.SubmitState.SENDING -> "Sending score to the global board..."
+        LeaderboardClient.SubmitState.OK -> "On the global board as ${prefs.getPlayerName()}!"
+        LeaderboardClient.SubmitState.FAILED ->
+            "Offline. Manual code: ${submitCode()} (see README)"
+        else -> "Leaderboard code: ${submitCode()} (see README)"
+    }
+
+    /** A tap on a menu screen (world coordinates). */
+    fun onMenuTap(x: Float, y: Float) {
+        when (phase) {
+            GamePhase.DIFFICULTY_SELECT -> {
+                val row = overlay.difficultyRowAt(x, y)
+                if (row >= 0) difficultySelection = row
+                difficulty = Difficulty.values()[difficultySelection]
+                prefs.setDifficultyName(difficulty.name)
+                phase = GamePhase.MODE_SELECT
+                phaseFrames = 0
+            }
+            GamePhase.MODE_SELECT -> {
+                val row = overlay.modeRowAt(x, y)
+                if (row >= 0) modeSelection = row
+                confirmMode()
+            }
+            else -> Unit
         }
     }
 
     /** CENTER / 5 / OK pressed: the universal confirm-and-action button. */
     fun onActionDown() {
         when (phase) {
-            GamePhase.INTRO -> startNewGame()
+            GamePhase.INTRO -> {
+                difficultySelection = difficulty.ordinal
+                phase = GamePhase.DIFFICULTY_SELECT
+                phaseFrames = 0
+            }
+            GamePhase.DIFFICULTY_SELECT -> {
+                difficulty = Difficulty.values()[difficultySelection]
+                prefs.setDifficultyName(difficulty.name)
+                phase = GamePhase.MODE_SELECT
+                phaseFrames = 0
+            }
+            GamePhase.MODE_SELECT -> confirmMode()
+            GamePhase.LEADERBOARD -> resetToIntro()
             GamePhase.LEVEL_INTRO -> beginPlay()
             GamePhase.PLAYING -> {
                 runPressed = true
@@ -202,9 +321,16 @@ class GameEngine(
 
     // ------------------------------------------------------------ lifecycle
 
+    private fun confirmMode() {
+        endlessMode = modeSelection == 1
+        startNewGame()
+    }
+
     private fun startNewGame() {
+        endlessSeed = Random.nextLong() // fresh bein hazmanim days every run
+        leaderboard.resetSubmitState()
         score = 0
-        lives = GameConfig.STARTING_LIVES
+        lives = difficulty.lives
         newBest = false
         runLivesLost = 0
         talmid.clearEffects()
@@ -248,7 +374,7 @@ class GameEngine(
 
     private fun buildLevel(index: Int) {
         levelIndex = index
-        level = Levels.all[index]
+        level = if (endlessMode) Levels.endless(index + 1, endlessSeed) else Levels.all[index]
 
         platforms.clear()
         for (spec in level.platforms) {
@@ -278,7 +404,8 @@ class GameEngine(
                 Mashgiach(
                     spec.fxStart * worldWidth,
                     spec.fxEnd * worldWidth,
-                    spec.fy * worldHeight
+                    spec.fy * worldHeight,
+                    GameConfig.MASHGIACH_SPEED + difficulty.mashgiachSpeedBonus
                 )
             )
         }
@@ -286,13 +413,18 @@ class GameEngine(
         felafelBalls.clear()
         floatingTexts.clear()
         talmid.resetForLevel(playerStartX, floorTop)
-        menahel.resetForLevel(worldWidth * 0.72f, floorTop, level.menahelSpeed)
+        menahel.resetForLevel(
+            worldWidth * 0.72f, floorTop, level.menahelSpeed * difficulty.menahelSpeedFactor
+        )
 
         assistants.clear()
         if (Modifier.ASSISTANT_MENAHEL in level.modifiers) {
             val assistant = Menahel("ASST. MENAHEL")
             // Slightly slower than the boss, but he starts closer
-            assistant.resetForLevel(worldWidth * 0.45f, floorTop, level.menahelSpeed * 0.8f)
+            assistant.resetForLevel(
+                worldWidth * 0.45f, floorTop,
+                level.menahelSpeed * 0.8f * difficulty.menahelSpeedFactor
+            )
             assistants.add(assistant)
         }
 
@@ -363,7 +495,7 @@ class GameEngine(
 
     /** From level 10 the Menahel throws chalk with decades-honed accuracy. */
     private fun updateChalk() {
-        if (level.number >= 10 && !menahel.isStunned) {
+        if (level.number >= difficulty.chalkFromLevel && !menahel.isStunned) {
             chalkCooldown--
             if (chalkCooldown <= 0) {
                 chalkCooldown = 240 + Random.nextInt(200)
@@ -459,7 +591,7 @@ class GameEngine(
             r.update()
             if (r.tryCollect(talmid.centerX, talmid.centerY, 60f)) {
                 music.playSfx(Sfx.PICKUP)
-                score += GameConfig.SCORE_RUGELACH
+                addScore(GameConfig.SCORE_RUGELACH)
                 addFloatingText(
                     "+${GameConfig.SCORE_RUGELACH}",
                     r.baseX, r.baseY - 30f, Color.rgb(60, 140, 40)
@@ -470,7 +602,7 @@ class GameEngine(
             p.update()
             if (p.tryCollect(talmid.centerX, talmid.centerY, 65f)) {
                 music.playSfx(Sfx.POWERUP)
-                score += GameConfig.SCORE_POWER_UP
+                addScore(GameConfig.SCORE_POWER_UP)
                 when (p.type) {
                     PowerUpType.COFFEE -> talmid.applyCoffee()
                     PowerUpType.SELTZER -> talmid.applySeltzer()
@@ -537,11 +669,17 @@ class GameEngine(
         lives--
         runLivesLost++
         if (lives <= 0) {
-            gameOverLine = Levels.gameOverLines[Random.nextInt(Levels.gameOverLines.size)]
+            gameOverLine = if (endlessMode) {
+                "You lasted ${level.number} day" +
+                    (if (level.number == 1) "" else "s") + " of bein hazmanim."
+            } else {
+                Levels.gameOverLines[Random.nextInt(Levels.gameOverLines.size)]
+            }
             newBest = prefs.submitScore(score)
             if (newBest) highScore = score
             phase = GamePhase.GAME_OVER
             phaseFrames = 0
+            submitRunScore()
         } else {
             addFloatingText(
                 message,
@@ -561,12 +699,18 @@ class GameEngine(
         val seconds = levelFrames / 60
         val timeBonus = (GameConfig.TIME_BONUS_MAX - seconds * GameConfig.TIME_BONUS_DECAY_PER_SECOND)
             .coerceAtLeast(0)
-        score += GameConfig.SCORE_LEVEL_CLEAR + timeBonus
+        addScore(GameConfig.SCORE_LEVEL_CLEAR + timeBonus)
         music.playSfx(Sfx.LEVEL_CLEAR)
 
         if (seconds < 15) award(Achievement.ZRIZUS)
         if (rugelach.isNotEmpty() && rugelach.all { it.collected }) {
             award(Achievement.KIBUD_RUGELACH)
+        }
+
+        if (endlessMode) {
+            prefs.submitCounterMax("endless_best", level.number)
+            loadLevel(levelIndex + 1)
+            return
         }
 
         if (levelIndex + 1 >= Levels.all.size) {
@@ -577,9 +721,15 @@ class GameEngine(
             if (newBest) highScore = score
             phase = GamePhase.VICTORY
             phaseFrames = 0
+            submitRunScore()
         } else {
             loadLevel(levelIndex + 1)
         }
+    }
+
+    /** All points flow through the difficulty's score multiplier. */
+    private fun addScore(points: Int) {
+        score += (points * difficulty.scoreFactor).toInt()
     }
 
     private fun recordStun() {
@@ -690,10 +840,18 @@ class GameEngine(
                 Achievement.values().count { prefs.isAchieved(it.name) },
                 prefs.getCounter("escapes")
             )
-            GamePhase.LEVEL_INTRO -> overlay.drawLevelIntro(canvas, level)
+            GamePhase.DIFFICULTY_SELECT -> overlay.drawDifficultySelect(canvas, difficultySelection)
+            GamePhase.MODE_SELECT ->
+                overlay.drawModeSelect(canvas, modeSelection, prefs.getCounter("endless_best"))
+            GamePhase.LEADERBOARD ->
+                overlay.drawLeaderboard(canvas, leaderboard.latest(), leaderboard.hasFailed())
+            GamePhase.LEVEL_INTRO -> overlay.drawLevelIntro(canvas, level, difficulty.label)
             GamePhase.PAUSED -> overlay.drawPaused(canvas)
-            GamePhase.GAME_OVER -> overlay.drawGameOver(canvas, gameOverLine, score, highScore, newBest)
-            GamePhase.VICTORY -> overlay.drawVictory(canvas, score, highScore, newBest)
+            GamePhase.GAME_OVER -> overlay.drawGameOver(
+                canvas, gameOverLine, score, highScore, newBest, leaderboardStatusLine()
+            )
+            GamePhase.VICTORY ->
+                overlay.drawVictory(canvas, score, highScore, newBest, leaderboardStatusLine())
             GamePhase.PLAYING -> Unit
         }
     }

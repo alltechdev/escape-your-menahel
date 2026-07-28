@@ -25,6 +25,27 @@ class GamePrefs(context: Context) {
         prefs.edit().putBoolean(KEY_MUTED, muted).apply()
     }
 
+    fun getDifficultyName(default: String): String =
+        prefs.getString(KEY_DIFFICULTY, default) ?: default
+
+    fun setDifficultyName(name: String) {
+        prefs.edit().putString(KEY_DIFFICULTY, name).apply()
+    }
+
+    /** A stable, auto-generated yeshivish handle for the global board. */
+    fun getPlayerName(): String {
+        val existing = prefs.getString(KEY_PLAYER_NAME, null)
+        if (existing != null) return existing
+        val names = arrayOf(
+            "Shmerel", "Yankel", "Berel", "Zalman", "Motty", "Duvid",
+            "Shloimy", "Avrumi", "Hershel", "Fishel", "Getzel", "Kalman"
+        )
+        val generated = names[(Math.random() * names.size).toInt()] +
+            "-" + (100 + (Math.random() * 900).toInt())
+        prefs.edit().putString(KEY_PLAYER_NAME, generated).apply()
+        return generated
+    }
+
     fun isAchieved(name: String): Boolean = prefs.getBoolean("ach_" + name, false)
 
     fun setAchieved(name: String) {
@@ -32,6 +53,13 @@ class GamePrefs(context: Context) {
     }
 
     fun getCounter(name: String): Int = prefs.getInt("cnt_" + name, 0)
+
+    /** Stores [value] under [name] if it beats the stored value. */
+    fun submitCounterMax(name: String, value: Int) {
+        if (value > getCounter(name)) {
+            prefs.edit().putInt("cnt_" + name, value).apply()
+        }
+    }
 
     /** Increments a lifetime counter and returns the new value. */
     fun incrementCounter(name: String): Int {
@@ -44,5 +72,7 @@ class GamePrefs(context: Context) {
         const val PREFS_NAME = "escape_menahel"
         const val KEY_HIGH_SCORE = "high_score"
         const val KEY_MUTED = "music_muted"
+        const val KEY_DIFFICULTY = "difficulty"
+        const val KEY_PLAYER_NAME = "player_name"
     }
 }

@@ -12,6 +12,11 @@ android {
         targetSdk 34
         versionCode 2
         versionName "2.0.0"
+        // Injected by CI from the LEADERBOARD_TOKEN Actions secret (a
+        // fine-grained PAT with issues:write on this repo only). Empty in
+        // local builds: the app then falls back to manual score submission.
+        // The leaderboard is entirely optional - no internet needed to play.
+        buildConfigField "String", "LEADERBOARD_TOKEN", "\"${System.getenv('LEADERBOARD_TOKEN') ?: ''}\""
     }
 
     buildTypes {

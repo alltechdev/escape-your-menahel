@@ -31,12 +31,16 @@ class GameView(context: Context, private val engine: GameEngine) :
     private val engineLock = Any()
     private var touchMode = false
 
+    // Hybrid phones (keypad/d-pad AND a touchscreen) are treated as pure
+    // keypad devices: no shell, no on-screen controls, touches ignored.
+    private val hasPhysicalDpad =
+        resources.configuration.navigation == Configuration.NAVIGATION_DPAD
+
     init {
         holder.addCallback(this)
         isFocusable = true
         // Touchscreen-only device (no physical d-pad)? Show the on-screen
         // gamepad from the start rather than waiting for the first tap.
-        val hasPhysicalDpad = resources.configuration.navigation == Configuration.NAVIGATION_DPAD
         val hasTouchscreen =
             context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
         if (!hasPhysicalDpad && hasTouchscreen) {
@@ -79,6 +83,9 @@ class GameView(context: Context, private val engine: GameEngine) :
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_W -> {
                     if (event.repeatCount == 0) engine.onJump(); true
                 }
+                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_S -> {
+                    if (event.repeatCount == 0) engine.onMenuDown(); true
+                }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_5,
                 KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ENTER -> {
                     if (event.repeatCount == 0) engine.onActionDown(); true
@@ -88,6 +95,9 @@ class GameView(context: Context, private val engine: GameEngine) :
                 }
                 KeyEvent.KEYCODE_POUND, KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_M -> {
                     if (event.repeatCount == 0) engine.toggleMute(); true
+                }
+                KeyEvent.KEYCODE_7 -> {
+                    if (event.repeatCount == 0) engine.onLeaderboardKey(); true
                 }
                 else -> false
             }
@@ -114,8 +124,10 @@ class GameView(context: Context, private val engine: GameEngine) :
                 KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ENTER ->
                     engine.onActionUp()
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_W,
+                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_S,
                 KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_STAR,
-                KeyEvent.KEYCODE_POUND, KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_M ->
+                KeyEvent.KEYCODE_POUND, KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_M,
+                KeyEvent.KEYCODE_7 ->
                     Unit // handled on key-down; consume the up event
                 else -> return super.onKeyUp(keyCode, event)
             }
@@ -126,6 +138,8 @@ class GameView(context: Context, private val engine: GameEngine) :
     // ----------------------------------------------------------- touch input
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // Physical d-pad present: this is a keypad device, touch does nothing
+        if (hasPhysicalDpad) return true
         synchronized(engineLock) {
             if (!touchMode) {
                 touchMode = true
@@ -149,6 +163,25 @@ class GameView(context: Context, private val engine: GameEngine) :
         val control = TouchGamepadLayout.hit(worldX(event, pointerIndex), worldY(event, pointerIndex))
         if (control == TouchGamepadLayout.Control.MUTE) {
             engine.toggleMute()
+            return
+        }
+        if (control == TouchGamepadLayout.Control.SELECT && engine.phase == GamePhase.INTRO) {
+            engine.onLeaderboardKey()
+            return
+        }
+        if (engine.phase == GamePhase.DIFFICULTY_SELECT || engine.phase == GamePhase.MODE_SELECT) {
+            // Menu taps need game-world coordinates (inside the LCD in
+            // touch mode, the whole screen otherwise)
+            val shellX = worldX(event, pointerIndex)
+            val shellY = worldY(event, pointerIndex)
+            if (touchMode) {
+                engine.onMenuTap(
+                    (shellX - TouchGamepadLayout.screenOffsetX) / TouchGamepadLayout.screenScale,
+                    (shellY - TouchGamepadLayout.screenOffsetY) / TouchGamepadLayout.screenScale
+                )
+            } else {
+                engine.onMenuTap(shellX, shellY)
+            }
             return
         }
         if (engine.phase != GamePhase.PLAYING) {

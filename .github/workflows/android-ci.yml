@@ -27,6 +27,8 @@ jobs:
 
       - name: Build release APK
         run: ./gradlew assembleRelease --stacktrace
+        env:
+          LEADERBOARD_TOKEN: ${{ secrets.LEADERBOARD_TOKEN }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

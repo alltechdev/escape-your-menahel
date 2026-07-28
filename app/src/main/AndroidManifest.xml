@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.escapegame">
 
+    <!-- Global leaderboard fetch (read-only, raw.githubusercontent.com) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Designed for kosher flip/bar phones: keypad + d-pad, no touchscreen needed -->
     <uses-feature
         android:name="android.hardware.touchscreen"

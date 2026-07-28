@@ -3,6 +3,9 @@ package com.escapegame.model
 /** Top-level state machine phases for the game. */
 enum class GamePhase {
     INTRO,
+    DIFFICULTY_SELECT,
+    MODE_SELECT,
+    LEADERBOARD,
     LEVEL_INTRO,
     PLAYING,
     PAUSED,
@@ -43,6 +46,25 @@ enum class Modifier(val announcement: String) {
     DARK("LIGHTS OUT! Stay close to your ner!"),
     WIND("WINDY! Hold onto your hat!"),
     ASSISTANT_MENAHEL("TWO MENAHELIM?! Oy!")
+}
+
+/**
+ * Difficulty settings — pick your madreiga. Affects lives, enemy speeds,
+ * when the chalk starts flying, and the score multiplier.
+ */
+enum class Difficulty(
+    val label: String,
+    val description: String,
+    val lives: Int,
+    val menahelSpeedFactor: Float,
+    val mashgiachSpeedBonus: Float,
+    val chalkFromLevel: Int,
+    val scoreFactor: Float
+) {
+    KVETCH("KVETCH", "5 hats. Slower Menahel. Nobody judges. (Everybody judges.)", 5, 0.8f, 0f, 14, 0.75f),
+    BAAL_HABOS("BAAL HABOS", "3 hats. The standard chinuch experience.", 3, 1f, 0f, 10, 1f),
+    MASMID("MASMID", "2 hats. Faster Menahel. The chalk starts early.", 2, 1.2f, 0.6f, 6, 1.5f),
+    GADOL_HADOR("GADOL HADOR", "1 hat. Everything is faster. Hatzlacha.", 1, 1.35f, 1.2f, 3, 2f)
 }
 
 /** Lifetime achievements — "semichos" — persisted across launches. */

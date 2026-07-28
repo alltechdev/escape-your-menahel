@@ -6,6 +6,8 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
 import com.escapegame.levels.Levels
+import com.escapegame.model.Difficulty
+import com.escapegame.net.LeaderboardEntry
 import com.escapegame.model.LevelDefinition
 
 /**
@@ -63,11 +65,32 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         textSize = 26f
         textAlign = Paint.Align.CENTER
     }
+    private val difficultyLabelPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 40f
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    private val difficultyDescPaint = Paint().apply {
+        color = Color.rgb(200, 200, 210)
+        textSize = 27f
+        textAlign = Paint.Align.CENTER
+    }
     private val modifierPaint = Paint().apply {
         color = Color.rgb(255, 170, 60)
         textSize = 28f
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
+    }
+    private val leaderboardLeftPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 30f
+        textAlign = Paint.Align.LEFT
+    }
+    private val leaderboardRightPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 30f
+        textAlign = Paint.Align.RIGHT
     }
     private val cardRect = RectF()
 
@@ -82,7 +105,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
             val lh = 46f
             canvas.drawText("D-pad — move  ·  B — jump (x2 = double)", w / 2, y, bodyPaint); y += lh
             canvas.drawText("A — run + shoot felafel", w / 2, y, bodyPaint); y += lh
-            canvas.drawText("START — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.4f
+            canvas.drawText("START — pause · SELECT here — leaderboard", w / 2, y, bodyPaint); y += lh * 1.4f
             canvas.drawText("Grab rugelach. ${Levels.all.size} levels to freedom.", w / 2, y, bodyPaint)
 
             if (highScore > 0) {
@@ -109,7 +132,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText("2  or  UP — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
         canvas.drawText("5  or  OK — run + shoot felafel", w / 2, y, bodyPaint); y += lh
         canvas.drawText("P / MENU — mincha break (pause)", w / 2, y, bodyPaint); y += lh
-        canvas.drawText("0 / # — klezmer on/off", w / 2, y, bodyPaint); y += lh * 1.8f
+        canvas.drawText("0 / # — klezmer · 7 or DOWN — leaderboard", w / 2, y, bodyPaint); y += lh * 1.8f
 
         canvas.drawText("Grab rugelach. Chap the power-ups.", w / 2, y, bodyPaint); y += lh
         canvas.drawText("${Levels.all.size} levels between you and freedom.", w / 2, y, bodyPaint); y += lh * 1.6f
@@ -123,7 +146,122 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText("Est. 5747 · Accredited by absolutely nobody", w / 2, h * 0.93f, finePrintPaint)
     }
 
-    fun drawLevelIntro(canvas: Canvas, level: LevelDefinition) {
+    fun drawDifficultySelect(canvas: Canvas, selected: Int) {
+        canvas.drawRect(0f, 0f, w, h, dimPaint)
+        canvas.drawText("CHOOSE YOUR MADREIGA", w / 2, h * 0.13f, headerPaint)
+
+        val values = Difficulty.values()
+        for (i in values.indices) {
+            val top = difficultyRowTop(i)
+            cardRect.set(w * 0.08f, top, w * 0.92f, top + difficultyRowHeight())
+            canvas.drawRoundRect(cardRect, 18f, 18f, cardPaint)
+            if (i == selected) {
+                canvas.drawRoundRect(cardRect, 18f, 18f, cardStrokePaint)
+            }
+            val option = values[i]
+            difficultyLabelPaint.color = if (i == selected) Color.YELLOW else Color.WHITE
+            canvas.drawText(option.label, w / 2, top + difficultyRowHeight() * 0.42f, difficultyLabelPaint)
+            canvas.drawText(option.description, w / 2, top + difficultyRowHeight() * 0.78f, difficultyDescPaint)
+        }
+
+        val prompt = if (touchMode) "Tap a madreiga to begin" else "2/8 or UP/DOWN choose · 5/OK begin"
+        canvas.drawText(prompt, w / 2, h * 0.93f, accentPaint)
+    }
+
+    fun drawLeaderboard(canvas: Canvas, entries: List<LeaderboardEntry>?, failed: Boolean) {
+        canvas.drawRect(0f, 0f, w, h, dimPaint)
+        canvas.drawText("GLOBAL TOP 10", w / 2, h * 0.12f, headerPaint)
+
+        when {
+            failed -> {
+                canvas.drawText("Couldn't reach the leaderboard.", w / 2, h * 0.35f, bodyPaint)
+                canvas.drawText("(No internet? A phone THIS kosher?)", w / 2, h * 0.40f, finePrintPaint)
+            }
+            entries == null ->
+                canvas.drawText("Loading... (asking the gabbai)", w / 2, h * 0.35f, bodyPaint)
+            entries.isEmpty() -> {
+                canvas.drawText("No scores on the board yet.", w / 2, h * 0.35f, bodyPaint)
+                canvas.drawText("Be the first. Huge kavod.", w / 2, h * 0.40f, finePrintPaint)
+            }
+            else -> {
+                var y = h * 0.20f
+                for ((index, entry) in entries.take(10).withIndex()) {
+                    leaderboardLeftPaint.color =
+                        if (index == 0) Color.rgb(255, 200, 40) else Color.WHITE
+                    leaderboardRightPaint.color = leaderboardLeftPaint.color
+                    canvas.drawText(
+                        "${index + 1}. ${entry.name}", w * 0.10f, y, leaderboardLeftPaint
+                    )
+                    canvas.drawText(
+                        "${entry.score} · ${entry.mode}/${entry.difficulty}",
+                        w * 0.90f, y, leaderboardRightPaint
+                    )
+                    y += h * 0.045f
+                }
+            }
+        }
+
+        canvas.drawText("To submit: open a GitHub issue titled", w / 2, h * 0.72f, finePrintPaint)
+        canvas.drawText("SCORE: <your code> story MASMID", w / 2, h * 0.755f, bodyPaint)
+        canvas.drawText("at github.com/alltechdev/escape-your-menahel", w / 2, h * 0.79f, finePrintPaint)
+        canvas.drawText("(Your code appears when a run ends)", w / 2, h * 0.825f, finePrintPaint)
+
+        canvas.drawText(confirmPrompt("go back"), w / 2, h * 0.91f, accentPaint)
+    }
+
+    fun drawModeSelect(canvas: Canvas, selected: Int, endlessBestDay: Int) {
+        canvas.drawRect(0f, 0f, w, h, dimPaint)
+        canvas.drawText("CHOOSE YOUR ZMAN", w / 2, h * 0.16f, headerPaint)
+
+        val labels = arrayOf("THE ESCAPE", "BEIN HAZMANIM")
+        val descriptions = arrayOf(
+            "The story: 18 levels to freedom.",
+            if (endlessBestDay > 0) "Endless days. Best so far: day $endlessBestDay."
+            else "Endless days, rising danger, no exit exam."
+        )
+        for (i in 0..1) {
+            val top = modeRowTop(i)
+            cardRect.set(w * 0.08f, top, w * 0.92f, top + modeRowHeight())
+            canvas.drawRoundRect(cardRect, 18f, 18f, cardPaint)
+            if (i == selected) canvas.drawRoundRect(cardRect, 18f, 18f, cardStrokePaint)
+            difficultyLabelPaint.color = if (i == selected) Color.YELLOW else Color.WHITE
+            canvas.drawText(labels[i], w / 2, top + modeRowHeight() * 0.42f, difficultyLabelPaint)
+            canvas.drawText(descriptions[i], w / 2, top + modeRowHeight() * 0.78f, difficultyDescPaint)
+        }
+
+        val prompt = if (touchMode) "Tap a zman to begin" else "2/8 or UP/DOWN choose · 5/OK begin"
+        canvas.drawText(prompt, w / 2, h * 0.85f, accentPaint)
+    }
+
+    /** Index of the mode row containing the point, or -1. */
+    fun modeRowAt(x: Float, y: Float): Int {
+        if (x < w * 0.08f || x > w * 0.92f) return -1
+        for (i in 0..1) {
+            val top = modeRowTop(i)
+            if (y >= top && y <= top + modeRowHeight()) return i
+        }
+        return -1
+    }
+
+    private fun modeRowTop(index: Int): Float = h * (0.28f + index * 0.22f)
+
+    private fun modeRowHeight(): Float = h * 0.16f
+
+    /** Index of the difficulty row containing the point, or -1. */
+    fun difficultyRowAt(x: Float, y: Float): Int {
+        if (x < w * 0.08f || x > w * 0.92f) return -1
+        for (i in Difficulty.values().indices) {
+            val top = difficultyRowTop(i)
+            if (y >= top && y <= top + difficultyRowHeight()) return i
+        }
+        return -1
+    }
+
+    private fun difficultyRowTop(index: Int): Float = h * (0.20f + index * 0.17f)
+
+    private fun difficultyRowHeight(): Float = h * 0.13f
+
+    fun drawLevelIntro(canvas: Canvas, level: LevelDefinition, difficultyLabel: String) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
         if (compact) {
             cardRect.set(w * 0.12f, h * 0.24f, w * 0.88f, h * 0.76f)
@@ -135,7 +273,10 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
 
         val top = cardRect.top
         val height = cardRect.height()
-        canvas.drawText("Level ${level.number} of ${Levels.all.size}", w / 2, top + height * 0.16f, bodyPaint)
+        canvas.drawText(
+            "Level ${level.number} of ${Levels.all.size} · $difficultyLabel",
+            w / 2, top + height * 0.16f, bodyPaint
+        )
         canvas.drawText(level.name, w / 2, top + height * 0.32f, headerPaint)
         drawWrapped(canvas, level.quip, w / 2, top + height * 0.47f, cardRect.width() * 0.86f)
 
@@ -158,7 +299,14 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText(confirmPrompt("resume"), w / 2, h * 0.55f, accentPaint)
     }
 
-    fun drawGameOver(canvas: Canvas, line: String, score: Int, highScore: Int, isNewBest: Boolean) {
+    fun drawGameOver(
+        canvas: Canvas,
+        line: String,
+        score: Int,
+        highScore: Int,
+        isNewBest: Boolean,
+        leaderboardLine: String
+    ) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
         canvas.drawText("CAUGHT!", w / 2, h * 0.32f, redPaint)
         drawWrapped(canvas, line, w / 2, h * 0.42f, w * 0.8f)
@@ -168,10 +316,19 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         } else {
             canvas.drawText("Best: $highScore", w / 2, h * 0.61f, bodyPaint)
         }
-        canvas.drawText(confirmPrompt("try again"), w / 2, h * 0.72f, accentPaint)
+        if (score > 0) {
+            canvas.drawText(leaderboardLine, w / 2, h * 0.67f, finePrintPaint)
+        }
+        canvas.drawText(confirmPrompt("try again"), w / 2, h * 0.74f, accentPaint)
     }
 
-    fun drawVictory(canvas: Canvas, score: Int, highScore: Int, isNewBest: Boolean) {
+    fun drawVictory(
+        canvas: Canvas,
+        score: Int,
+        highScore: Int,
+        isNewBest: Boolean,
+        leaderboardLine: String
+    ) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
         if (compact) {
             canvas.drawText("BARUCH SHEPTARANI!", w / 2, h * 0.2f, titlePaint)
@@ -194,7 +351,8 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
             canvas.drawText("Best: $highScore", w / 2, h * 0.69f, bodyPaint)
         }
 
-        canvas.drawText(confirmPrompt("start another zman"), w / 2, h * 0.8f, accentPaint)
+        canvas.drawText(leaderboardLine, w / 2, h * 0.745f, finePrintPaint)
+        canvas.drawText(confirmPrompt("start another zman"), w / 2, h * 0.82f, accentPaint)
     }
 
     /** "Press 5 / OK to X" on keypads, "Tap to X" on touchscreens. */

@@ -27,6 +27,14 @@ between you and the 4:15 bus to freedom.
 - **Rugelach collectibles**, score with time bonuses, 3 lives (displayed as
   black hats, naturally), and a persistent high score
 - **Pause = Mincha Break**
+- **Bein Hazmanim mode** — endless procedurally generated days with rising
+  danger, random modifiers, and a persistent best-day record. There is no
+  bein hazmanim from the Menahel
+- **Choose your madreiga** — four difficulties: KVETCH (5 hats, slower
+  Menahel), BAAL HABOS (the standard chinuch experience), MASMID (2 hats,
+  faster, early chalk), and GADOL HADOR (1 hat, everything faster,
+  hatzlacha) with score multipliers from 0.75x to 2x; your choice is
+  remembered
 - **Chalk fire** — from level 10 the Menahel throws chalk with decades-honed
   accuracy; getting hit delivers mussar (half speed while you absorb it)
 - **Semichos (achievements)** — five lifetime achievements (Felafel Sniper,
@@ -58,6 +66,41 @@ between you and the 4:15 bus to freedom.
 
 On touchscreens with no physical keys: d-pad moves, **B** jumps, **A** runs +
 shoots felafel, **START** pauses, and any tap confirms menus.
+
+Hybrid devices with both a keypad/d-pad **and** a touchscreen are treated as
+keypad devices: fullscreen game, no on-screen controls, touches ignored.
+
+## Global leaderboard (no server, just GitHub — and fully optional)
+
+**No internet is needed to play.** The leaderboard is a strictly optional
+extra: fetching and submitting only happen on demand, and every failure
+degrades silently back to normal offline play.
+
+The game shows the global top 10 (press `7`, or SELECT on the title screen in
+touch mode), fetched anonymously from `leaderboard.json` in this repo.
+
+**Live submissions**: when a run ends, the game automatically submits your
+score under an auto-generated handle (e.g. `Shmerel-382`) by opening a
+GitHub issue via a build-time token; a GitHub Action validates the checksum,
+keeps each player's best score per mode, commits the updated
+`leaderboard.json`, and closes the issue. No server anywhere.
+
+**Maintainer setup for live submissions**: create a fine-grained PAT with
+*Issues: write* scoped to only this repository (a dedicated bot account is
+best), and add it as an Actions secret named `LEADERBOARD_TOKEN`. CI injects
+it into the APK at build time. Know the trade-off: anyone can extract a token
+from a public APK; the blast radius is limited to opening issues here, and
+you can revoke/rotate at any time. Without the secret, builds fall back to
+manual submission.
+
+**Manual submissions** always work: note the leaderboard code on the
+game-over/victory screen and open an issue titled:
+
+```
+SCORE: <your code> <story|endless> <KVETCH|BAAL_HABOS|MASMID|GADOL_HADOR>
+```
+
+Anti-cheat is checksum-grade — this is an honor system among bnei Torah.
 
 ## Building
 
