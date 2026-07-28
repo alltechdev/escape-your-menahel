@@ -76,7 +76,7 @@ class HudRenderer(private val w: Float) {
     fun drawControlsHint(canvas: Canvas, worldHeight: Float) {
         smallTextPaint.color = Color.BLACK
         canvas.drawText(
-            "4/6 or ◀▶ move · 2/▲ jump · 5/OK run+felafel",
+            "4/6 move · 2 jump · 5 run+felafel · #/0 ♪",
             20f,
             worldHeight - 24f,
             smallTextPaint

@@ -86,6 +86,9 @@ class GameView(context: Context, private val engine: GameEngine) :
                 KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_STAR -> {
                     if (event.repeatCount == 0) engine.onPauseToggle(); true
                 }
+                KeyEvent.KEYCODE_POUND, KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_M -> {
+                    if (event.repeatCount == 0) engine.toggleMute(); true
+                }
                 else -> false
             }
             if (handled) {
@@ -111,7 +114,8 @@ class GameView(context: Context, private val engine: GameEngine) :
                 KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ENTER ->
                     engine.onActionUp()
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_W,
-                KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_STAR ->
+                KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_STAR,
+                KeyEvent.KEYCODE_POUND, KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_M ->
                     Unit // handled on key-down; consume the up event
                 else -> return super.onKeyUp(keyCode, event)
             }
@@ -142,12 +146,17 @@ class GameView(context: Context, private val engine: GameEngine) :
 
     /** Edge-triggered actions for a newly placed finger. */
     private fun handleTouchDown(event: MotionEvent, pointerIndex: Int) {
+        val control = TouchGamepadLayout.hit(worldX(event, pointerIndex), worldY(event, pointerIndex))
+        if (control == TouchGamepadLayout.Control.MUTE) {
+            engine.toggleMute()
+            return
+        }
         if (engine.phase != GamePhase.PLAYING) {
-            // Overlay screens: any tap is the confirm button
+            // Overlay screens: any other tap is the confirm button
             engine.onActionDown()
             return
         }
-        when (TouchGamepadLayout.hit(worldX(event, pointerIndex), worldY(event, pointerIndex))) {
+        when (control) {
             TouchGamepadLayout.Control.DPAD_UP,
             TouchGamepadLayout.Control.BUTTON_B -> engine.onJump()
             TouchGamepadLayout.Control.BUTTON_A -> engine.onActionDown()

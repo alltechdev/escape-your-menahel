@@ -99,7 +99,8 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText("4 / 6  or  LEFT / RIGHT — move", w / 2, y, bodyPaint); y += lh
         canvas.drawText("2  or  UP — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
         canvas.drawText("5  or  OK — run + shoot felafel", w / 2, y, bodyPaint); y += lh
-        canvas.drawText("P / MENU — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.8f
+        canvas.drawText("P / MENU — mincha break (pause)", w / 2, y, bodyPaint); y += lh
+        canvas.drawText("0 / # — klezmer on/off", w / 2, y, bodyPaint); y += lh * 1.8f
 
         canvas.drawText("Grab rugelach. Chap the power-ups.", w / 2, y, bodyPaint); y += lh
         canvas.drawText("12 levels between you and the 4:15 bus.", w / 2, y, bodyPaint); y += lh * 1.6f

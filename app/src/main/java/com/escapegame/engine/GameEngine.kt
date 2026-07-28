@@ -16,7 +16,8 @@ import com.escapegame.model.GamePhase
 import com.escapegame.model.LevelDefinition
 import com.escapegame.model.Platform
 import com.escapegame.model.PowerUpType
-import com.escapegame.persistence.HighScoreStore
+import com.escapegame.audio.MusicEngine
+import com.escapegame.persistence.GamePrefs
 import com.escapegame.render.BackgroundRenderer
 import com.escapegame.render.HudRenderer
 import com.escapegame.render.GameBoyShellRenderer
@@ -34,7 +35,10 @@ import kotlin.random.Random
  * Not internally synchronized: the hosting view calls every public method
  * under a single lock.
  */
-class GameEngine(private val highScores: HighScoreStore) {
+class GameEngine(
+    private val prefs: GamePrefs,
+    private val music: MusicEngine
+) {
 
     private var worldWidth = GameConfig.WORLD_WIDTH
     private var worldHeight = GameConfig.WORLD_HEIGHT
@@ -60,7 +64,7 @@ class GameEngine(private val highScores: HighScoreStore) {
     private var lives = GameConfig.STARTING_LIVES
     private var levelFrames = 0
     private var phaseFrames = 0
-    private var highScore = highScores.getHighScore()
+    private var highScore = prefs.getHighScore()
     private var newBest = false
     private var gameOverLine = Levels.gameOverLines.first()
 
@@ -71,7 +75,17 @@ class GameEngine(private val highScores: HighScoreStore) {
     init {
         // Populate level 1 so the intro screen has a real backdrop
         buildLevel(0)
+        music.setMuted(prefs.isMusicMuted())
     }
+
+    /** Flips the funky-klezmer soundtrack on/off and persists the choice. */
+    fun toggleMute() {
+        val newMuted = !music.isMuted()
+        music.setMuted(newMuted)
+        prefs.setMusicMuted(newMuted)
+    }
+
+    fun isMusicMuted(): Boolean = music.isMuted()
 
     /**
      * True when the handheld-shell presentation should be used: set by the
@@ -377,7 +391,7 @@ class GameEngine(private val highScores: HighScoreStore) {
         lives--
         if (lives <= 0) {
             gameOverLine = Levels.gameOverLines[Random.nextInt(Levels.gameOverLines.size)]
-            newBest = highScores.submitScore(score)
+            newBest = prefs.submitScore(score)
             if (newBest) highScore = score
             phase = GamePhase.GAME_OVER
             phaseFrames = 0
@@ -403,7 +417,7 @@ class GameEngine(private val highScores: HighScoreStore) {
         score += GameConfig.SCORE_LEVEL_CLEAR + timeBonus
 
         if (levelIndex + 1 >= Levels.all.size) {
-            newBest = highScores.submitScore(score)
+            newBest = prefs.submitScore(score)
             if (newBest) highScore = score
             phase = GamePhase.VICTORY
             phaseFrames = 0
@@ -451,7 +465,7 @@ class GameEngine(private val highScores: HighScoreStore) {
             canvas.clipRect(0f, 0f, worldWidth, worldHeight)
             drawWorldAndUi(canvas)
             canvas.restore()
-            gamepad.draw(canvas)
+            gamepad.draw(canvas, music.isMuted())
         } else {
             drawWorldAndUi(canvas)
         }
