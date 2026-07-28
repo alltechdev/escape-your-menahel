@@ -22,6 +22,7 @@ import com.escapegame.model.Platform
 import com.escapegame.model.PowerUpType
 import com.escapegame.audio.MusicEngine
 import com.escapegame.audio.Sfx
+import com.escapegame.net.LeaderboardClient
 import com.escapegame.persistence.GamePrefs
 import com.escapegame.render.BackgroundRenderer
 import com.escapegame.render.HudRenderer
@@ -92,6 +93,7 @@ class GameEngine(
     private var endlessMode = false
     private var modeSelection = 0
     private var endlessSeed = Random.nextLong()
+    private val leaderboard = LeaderboardClient()
 
     private fun loadDifficulty(): Difficulty = try {
         Difficulty.valueOf(prefs.getDifficultyName(Difficulty.BAAL_HABOS.name))
@@ -207,6 +209,22 @@ class GameEngine(
         music.playSfx(Sfx.PICKUP)
     }
 
+    /** Key 7 / SELECT on the title screen: show the global leaderboard. */
+    fun onLeaderboardKey() {
+        if (phase == GamePhase.INTRO) {
+            leaderboard.refresh()
+            phase = GamePhase.LEADERBOARD
+            phaseFrames = 0
+        }
+    }
+
+    /**
+     * The score-submission code shown at the end of a run: score plus a
+     * checksum the leaderboard workflow verifies. Honor-system-grade.
+     */
+    private fun submitCode(): String =
+        score.toString() + "-" + ((score.toLong() * 7919L + 5747L) % 99991L)
+
     /** A tap on a menu screen (world coordinates). */
     fun onMenuTap(x: Float, y: Float) {
         when (phase) {
@@ -242,6 +260,7 @@ class GameEngine(
                 phaseFrames = 0
             }
             GamePhase.MODE_SELECT -> confirmMode()
+            GamePhase.LEADERBOARD -> resetToIntro()
             GamePhase.LEVEL_INTRO -> beginPlay()
             GamePhase.PLAYING -> {
                 runPressed = true
@@ -800,10 +819,13 @@ class GameEngine(
             GamePhase.DIFFICULTY_SELECT -> overlay.drawDifficultySelect(canvas, difficultySelection)
             GamePhase.MODE_SELECT ->
                 overlay.drawModeSelect(canvas, modeSelection, prefs.getCounter("endless_best"))
+            GamePhase.LEADERBOARD ->
+                overlay.drawLeaderboard(canvas, leaderboard.latest(), leaderboard.hasFailed())
             GamePhase.LEVEL_INTRO -> overlay.drawLevelIntro(canvas, level, difficulty.label)
             GamePhase.PAUSED -> overlay.drawPaused(canvas)
-            GamePhase.GAME_OVER -> overlay.drawGameOver(canvas, gameOverLine, score, highScore, newBest)
-            GamePhase.VICTORY -> overlay.drawVictory(canvas, score, highScore, newBest)
+            GamePhase.GAME_OVER ->
+                overlay.drawGameOver(canvas, gameOverLine, score, highScore, newBest, submitCode())
+            GamePhase.VICTORY -> overlay.drawVictory(canvas, score, highScore, newBest, submitCode())
             GamePhase.PLAYING -> Unit
         }
     }

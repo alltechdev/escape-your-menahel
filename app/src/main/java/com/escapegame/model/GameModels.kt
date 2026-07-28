@@ -5,6 +5,7 @@ enum class GamePhase {
     INTRO,
     DIFFICULTY_SELECT,
     MODE_SELECT,
+    LEADERBOARD,
     LEVEL_INTRO,
     PLAYING,
     PAUSED,

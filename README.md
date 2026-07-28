@@ -67,6 +67,23 @@ between you and the 4:15 bus to freedom.
 On touchscreens with no physical keys: d-pad moves, **B** jumps, **A** runs +
 shoots felafel, **START** pauses, and any tap confirms menus.
 
+## Global leaderboard (no server, just GitHub)
+
+The game shows the global top 10 (press `7`, or SELECT on the title screen in
+touch mode), fetched anonymously from `leaderboard.json` in this repo.
+
+To submit a score: finish a run, note the **leaderboard code** on the
+game-over/victory screen, then open a GitHub issue on this repo titled:
+
+```
+SCORE: <your code> <story|endless> <KVETCH|BAAL_HABOS|MASMID|GADOL_HADOR>
+```
+
+A GitHub Action validates the code, records your score under your GitHub
+username (one best score per player per mode), commits the updated
+`leaderboard.json`, and closes the issue. No server anywhere. Anti-cheat is
+checksum-grade — this is an honor system among bnei Torah.
+
 ## Building
 
 ```bash

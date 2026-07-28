@@ -7,6 +7,7 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import com.escapegame.levels.Levels
 import com.escapegame.model.Difficulty
+import com.escapegame.net.LeaderboardEntry
 import com.escapegame.model.LevelDefinition
 
 /**
@@ -81,6 +82,16 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
+    private val leaderboardLeftPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 30f
+        textAlign = Paint.Align.LEFT
+    }
+    private val leaderboardRightPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 30f
+        textAlign = Paint.Align.RIGHT
+    }
     private val cardRect = RectF()
 
     fun drawIntro(canvas: Canvas, highScore: Int, semichos: Int, escapes: Int) {
@@ -94,7 +105,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
             val lh = 46f
             canvas.drawText("D-pad — move  ·  B — jump (x2 = double)", w / 2, y, bodyPaint); y += lh
             canvas.drawText("A — run + shoot felafel", w / 2, y, bodyPaint); y += lh
-            canvas.drawText("START — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.4f
+            canvas.drawText("START — pause · SELECT here — leaderboard", w / 2, y, bodyPaint); y += lh * 1.4f
             canvas.drawText("Grab rugelach. ${Levels.all.size} levels to freedom.", w / 2, y, bodyPaint)
 
             if (highScore > 0) {
@@ -121,7 +132,7 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText("2  or  UP — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
         canvas.drawText("5  or  OK — run + shoot felafel", w / 2, y, bodyPaint); y += lh
         canvas.drawText("P / MENU — mincha break (pause)", w / 2, y, bodyPaint); y += lh
-        canvas.drawText("0 / # — klezmer on/off", w / 2, y, bodyPaint); y += lh * 1.8f
+        canvas.drawText("0 / # — klezmer on/off · 7 — leaderboard", w / 2, y, bodyPaint); y += lh * 1.8f
 
         canvas.drawText("Grab rugelach. Chap the power-ups.", w / 2, y, bodyPaint); y += lh
         canvas.drawText("${Levels.all.size} levels between you and freedom.", w / 2, y, bodyPaint); y += lh * 1.6f
@@ -155,6 +166,47 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
 
         val prompt = if (touchMode) "Tap a madreiga to begin" else "2/8 or UP/DOWN choose · 5/OK begin"
         canvas.drawText(prompt, w / 2, h * 0.93f, accentPaint)
+    }
+
+    fun drawLeaderboard(canvas: Canvas, entries: List<LeaderboardEntry>?, failed: Boolean) {
+        canvas.drawRect(0f, 0f, w, h, dimPaint)
+        canvas.drawText("GLOBAL TOP 10", w / 2, h * 0.12f, headerPaint)
+
+        when {
+            failed -> {
+                canvas.drawText("Couldn't reach the leaderboard.", w / 2, h * 0.35f, bodyPaint)
+                canvas.drawText("(No internet? A phone THIS kosher?)", w / 2, h * 0.40f, finePrintPaint)
+            }
+            entries == null ->
+                canvas.drawText("Loading... (asking the gabbai)", w / 2, h * 0.35f, bodyPaint)
+            entries.isEmpty() -> {
+                canvas.drawText("No scores on the board yet.", w / 2, h * 0.35f, bodyPaint)
+                canvas.drawText("Be the first. Huge kavod.", w / 2, h * 0.40f, finePrintPaint)
+            }
+            else -> {
+                var y = h * 0.20f
+                for ((index, entry) in entries.take(10).withIndex()) {
+                    leaderboardLeftPaint.color =
+                        if (index == 0) Color.rgb(255, 200, 40) else Color.WHITE
+                    leaderboardRightPaint.color = leaderboardLeftPaint.color
+                    canvas.drawText(
+                        "${index + 1}. ${entry.name}", w * 0.10f, y, leaderboardLeftPaint
+                    )
+                    canvas.drawText(
+                        "${entry.score} · ${entry.mode}/${entry.difficulty}",
+                        w * 0.90f, y, leaderboardRightPaint
+                    )
+                    y += h * 0.045f
+                }
+            }
+        }
+
+        canvas.drawText("To submit: open a GitHub issue titled", w / 2, h * 0.72f, finePrintPaint)
+        canvas.drawText("SCORE: <your code> story MASMID", w / 2, h * 0.755f, bodyPaint)
+        canvas.drawText("at github.com/alltechdev/escape-your-menahel", w / 2, h * 0.79f, finePrintPaint)
+        canvas.drawText("(Your code appears when a run ends)", w / 2, h * 0.825f, finePrintPaint)
+
+        canvas.drawText(confirmPrompt("go back"), w / 2, h * 0.91f, accentPaint)
     }
 
     fun drawModeSelect(canvas: Canvas, selected: Int, endlessBestDay: Int) {
@@ -247,7 +299,14 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         canvas.drawText(confirmPrompt("resume"), w / 2, h * 0.55f, accentPaint)
     }
 
-    fun drawGameOver(canvas: Canvas, line: String, score: Int, highScore: Int, isNewBest: Boolean) {
+    fun drawGameOver(
+        canvas: Canvas,
+        line: String,
+        score: Int,
+        highScore: Int,
+        isNewBest: Boolean,
+        submitCode: String
+    ) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
         canvas.drawText("CAUGHT!", w / 2, h * 0.32f, redPaint)
         drawWrapped(canvas, line, w / 2, h * 0.42f, w * 0.8f)
@@ -257,10 +316,19 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
         } else {
             canvas.drawText("Best: $highScore", w / 2, h * 0.61f, bodyPaint)
         }
-        canvas.drawText(confirmPrompt("try again"), w / 2, h * 0.72f, accentPaint)
+        if (score > 0) {
+            canvas.drawText("Global leaderboard code: $submitCode", w / 2, h * 0.67f, finePrintPaint)
+        }
+        canvas.drawText(confirmPrompt("try again"), w / 2, h * 0.74f, accentPaint)
     }
 
-    fun drawVictory(canvas: Canvas, score: Int, highScore: Int, isNewBest: Boolean) {
+    fun drawVictory(
+        canvas: Canvas,
+        score: Int,
+        highScore: Int,
+        isNewBest: Boolean,
+        submitCode: String
+    ) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
         if (compact) {
             canvas.drawText("BARUCH SHEPTARANI!", w / 2, h * 0.2f, titlePaint)
@@ -283,7 +351,8 @@ class OverlayRenderer(private val w: Float, private val h: Float) {
             canvas.drawText("Best: $highScore", w / 2, h * 0.69f, bodyPaint)
         }
 
-        canvas.drawText(confirmPrompt("start another zman"), w / 2, h * 0.8f, accentPaint)
+        canvas.drawText("Global leaderboard code: $submitCode", w / 2, h * 0.745f, finePrintPaint)
+        canvas.drawText(confirmPrompt("start another zman"), w / 2, h * 0.82f, accentPaint)
     }
 
     /** "Press 5 / OK to X" on keypads, "Tap to X" on touchscreens. */
