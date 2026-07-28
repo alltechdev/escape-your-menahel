@@ -34,7 +34,7 @@ object Levels {
             name = "The Lunchroom",
             quip = "Fleishig day. The Menahel spotted your untucked shirt at bentching.",
             theme = LevelTheme.LUNCHROOM,
-            menahelSpeed = 2.6f,
+            menahelSpeed = 3.1f,
             platforms = listOf(
                 PlatformSpec(0.12f, T1, 0.24f),
                 PlatformSpec(0.45f, T2, 0.24f),
@@ -51,7 +51,7 @@ object Levels {
             name = "Hallway of the Hanhala",
             quip = "The sign says NO RUNNING IN THE HALLWAY. Nu, so run quietly.",
             theme = LevelTheme.HALLWAY,
-            menahelSpeed = 2.85f,
+            menahelSpeed = 3.4f,
             platforms = listOf(
                 PlatformSpec(0.08f, T1, 0.20f),
                 PlatformSpec(0.38f, T2, 0.22f),
@@ -72,7 +72,7 @@ object Levels {
             name = "The Great Cholent Spill",
             quip = "Erev Shabbos. The cholent reached yad soledes bo. So did the floor.",
             theme = LevelTheme.KITCHEN,
-            menahelSpeed = 3.1f,
+            menahelSpeed = 3.7f,
             platforms = listOf(
                 PlatformSpec(0.15f, T1, 0.22f),
                 PlatformSpec(0.50f, T1, 0.22f),
@@ -94,7 +94,7 @@ object Levels {
             name = "Shiur Room 3B",
             quip = "The Rebbi stepped out for a minute. The Menahel stepped in. And the Mashgiach.",
             theme = LevelTheme.CLASSROOM,
-            menahelSpeed = 3.3f,
+            menahelSpeed = 4.0f,
             platforms = listOf(
                 PlatformSpec(0.10f, T1, 0.22f),
                 PlatformSpec(0.42f, T2, 0.24f),
@@ -118,7 +118,7 @@ object Levels {
             name = "The Beis Medrash",
             quip = "Quiet please. Escaping b'iyun in progress.",
             theme = LevelTheme.BEIS_MEDRASH,
-            menahelSpeed = 3.5f,
+            menahelSpeed = 4.3f,
             platforms = listOf(
                 PlatformSpec(0.08f, T1, 0.20f),
                 PlatformSpec(0.36f, T2, 0.20f),
@@ -142,7 +142,7 @@ object Levels {
             name = "The Gym (Social Hall)",
             quip = "Folding chairs from last night's vort everywhere. The Menahel ran track in '87. Allegedly.",
             theme = LevelTheme.GYM,
-            menahelSpeed = 3.75f,
+            menahelSpeed = 4.6f,
             platforms = listOf(
                 PlatformSpec(0.12f, T1, 0.18f),
                 PlatformSpec(0.44f, T1, 0.18f),
@@ -170,7 +170,7 @@ object Levels {
             name = "The Otzar HaSeforim",
             quip = "SHHHH. (Also: run.)",
             theme = LevelTheme.LIBRARY,
-            menahelSpeed = 4.0f,
+            menahelSpeed = 4.9f,
             platforms = listOf(
                 PlatformSpec(0.10f, T1, 0.18f),
                 PlatformSpec(0.38f, T2, 0.18f),
@@ -194,7 +194,7 @@ object Levels {
             name = "The Kitchen",
             quip = "Fresh felafel. Unlimited ammo. B'dieved, also lunch.",
             theme = LevelTheme.KITCHEN,
-            menahelSpeed = 4.25f,
+            menahelSpeed = 5.2f,
             platforms = listOf(
                 PlatformSpec(0.14f, T1, 0.20f),
                 PlatformSpec(0.48f, T2, 0.20f),
@@ -221,7 +221,7 @@ object Levels {
             name = "Detention Row",
             quip = "No one has ever escaped detention. Be the first. B'ezras Hashem.",
             theme = LevelTheme.DETENTION,
-            menahelSpeed = 4.5f,
+            menahelSpeed = 5.5f,
             platforms = listOf(
                 PlatformSpec(0.06f, T1, 0.16f),
                 PlatformSpec(0.32f, T1, 0.16f),
@@ -251,7 +251,7 @@ object Levels {
             name = "The Roof (Assur!)",
             quip = "You are absolutely not allowed up here. That's the whole point.",
             theme = LevelTheme.ROOFTOP,
-            menahelSpeed = 4.75f,
+            menahelSpeed = 5.8f,
             platforms = listOf(
                 PlatformSpec(0.10f, T1, 0.18f),
                 PlatformSpec(0.40f, T2, 0.18f),
@@ -278,7 +278,7 @@ object Levels {
             name = "The Parking Lot",
             quip = "The Menahel's minivan has 340,000 miles and the koach of a lion.",
             theme = LevelTheme.PARKING_LOT,
-            menahelSpeed = 5.0f,
+            menahelSpeed = 6.1f,
             platforms = listOf(
                 PlatformSpec(0.08f, T1, 0.16f),
                 PlatformSpec(0.34f, T2, 0.16f),
@@ -308,7 +308,7 @@ object Levels {
             name = "The 4:15 Bus",
             quip = "The bus to freedom is at the corner. The Menahel is faster than he looks. NU, RUN!",
             theme = LevelTheme.BUS_STOP,
-            menahelSpeed = 5.4f,
+            menahelSpeed = 6.6f,
             platforms = listOf(
                 PlatformSpec(0.06f, T1, 0.15f),
                 PlatformSpec(0.30f, T2, 0.15f),

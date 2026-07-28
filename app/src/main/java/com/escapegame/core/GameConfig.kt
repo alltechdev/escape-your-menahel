@@ -15,20 +15,25 @@ object GameConfig {
     // Loop
     const val FRAME_MILLIS = 16L // ~60 FPS
 
-    // Virtual world (portrait)
+    // Virtual world. Keypad phones play fullscreen in the portrait world;
+    // touch mode plays in the landscape world shown inside the handheld
+    // shell's LCD. The portrait dimensions double as the shell's coordinate
+    // space. Levels are defined as fractions, so they re-flow to either.
     const val WORLD_WIDTH = 1080f
     const val WORLD_HEIGHT = 1920f
+    const val LANDSCAPE_WORLD_WIDTH = 1440f
+    const val LANDSCAPE_WORLD_HEIGHT = 1080f
 
     // World
-    const val FLOOR_HEIGHT = 180f
-    const val GRAVITY = 0.9f
+    const val FLOOR_TOP_FRACTION = 0.906f
+    const val GRAVITY = 1.6f
 
     // Player
     const val PLAYER_WIDTH = 60f
     const val PLAYER_HEIGHT = 75f
-    const val PLAYER_WALK_SPEED = 9f
-    const val PLAYER_RUN_SPEED = 16f
-    const val PLAYER_JUMP_POWER = -25f
+    const val PLAYER_WALK_SPEED = 11f
+    const val PLAYER_RUN_SPEED = 19f
+    const val PLAYER_JUMP_POWER = -33f
     const val PLAYER_FRICTION = 0.85f
     const val PLAYER_BASE_JUMPS = 2
     const val PLAYER_SELTZER_JUMPS = 3
@@ -46,7 +51,7 @@ object GameConfig {
     const val MENAHEL_STUN_FRAMES = 120
     const val MASHGIACH_WIDTH = 55f
     const val MASHGIACH_HEIGHT = 75f
-    const val MASHGIACH_SPEED = 3f
+    const val MASHGIACH_SPEED = 4f
     const val MASHGIACH_STUN_FRAMES = 150
     const val MENAHEL_CATCH_DISTANCE = 75f
     const val MASHGIACH_CATCH_DISTANCE = 65f
@@ -58,7 +63,7 @@ object GameConfig {
 
     // Projectiles
     const val FELAFEL_COOLDOWN_MILLIS = 300L
-    const val FELAFEL_SPEED = 16f
+    const val FELAFEL_SPEED = 20f
     const val FELAFEL_RADIUS = 12f
 
     // Scoring

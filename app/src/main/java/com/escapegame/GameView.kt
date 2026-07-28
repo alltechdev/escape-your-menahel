@@ -151,7 +151,8 @@ class GameView(context: Context, private val engine: GameEngine) :
             TouchGamepadLayout.Control.DPAD_UP,
             TouchGamepadLayout.Control.BUTTON_B -> engine.onJump()
             TouchGamepadLayout.Control.BUTTON_A -> engine.onActionDown()
-            TouchGamepadLayout.Control.START -> engine.onPauseToggle()
+            TouchGamepadLayout.Control.START,
+            TouchGamepadLayout.Control.SELECT -> engine.onPauseToggle()
             else -> Unit
         }
     }

@@ -36,11 +36,11 @@ import kotlin.random.Random
  */
 class GameEngine(private val highScores: HighScoreStore) {
 
-    private val worldWidth = GameConfig.WORLD_WIDTH
-    private val worldHeight = GameConfig.WORLD_HEIGHT
-    private val floorTop = worldHeight - GameConfig.FLOOR_HEIGHT
+    private var worldWidth = GameConfig.WORLD_WIDTH
+    private var worldHeight = GameConfig.WORLD_HEIGHT
+    private var floorTop = worldHeight * GameConfig.FLOOR_TOP_FRACTION
+    private var doorLeft = worldWidth - GameConfig.DOOR_WIDTH - 30f
     private val playerStartX = 40f
-    private val doorLeft = worldWidth - GameConfig.DOOR_WIDTH - 30f
 
     var phase = GamePhase.INTRO
         private set
@@ -68,16 +68,28 @@ class GameEngine(private val highScores: HighScoreStore) {
     private var rightPressed = false
     private var runPressed = false
 
+    init {
+        // Populate level 1 so the intro screen has a real backdrop
+        buildLevel(0)
+    }
+
     /**
-     * True when the on-screen Game Boy-style gamepad should be shown: set by
-     * the view when the device has no physical keypad/d-pad or the player
-     * touches the screen; cleared again the moment a physical key is used.
+     * True when the handheld-shell presentation should be used: set by the
+     * view when the device has no physical keypad/d-pad or the player touches
+     * the screen; cleared again the moment a physical key is used. Touch mode
+     * plays in the landscape world inside the shell's LCD; keypad mode plays
+     * the portrait world fullscreen.
      */
     var touchControlsEnabled = false
+        set(value) {
+            if (field == value) return
+            field = value
+            applyWorldSize()
+        }
 
-    private val background = BackgroundRenderer()
-    private val hud = HudRenderer()
-    private val overlay = OverlayRenderer()
+    private var background = BackgroundRenderer(worldWidth, worldHeight)
+    private var hud = HudRenderer(worldWidth)
+    private var overlay = OverlayRenderer(worldWidth, worldHeight)
     private val gamepad = TouchGamepadRenderer()
     private val shell = GameBoyShellRenderer()
     private val floatingTextPaint = Paint().apply {
@@ -154,7 +166,37 @@ class GameEngine(private val highScores: HighScoreStore) {
         phaseFrames = 0
     }
 
+    /**
+     * Switches between the portrait and landscape worlds and re-flows the
+     * current level into it (levels are fraction-based, so the layout
+     * adapts). Mid-run the player gets the level card again as a beat.
+     */
+    private fun applyWorldSize() {
+        if (touchControlsEnabled) {
+            worldWidth = GameConfig.LANDSCAPE_WORLD_WIDTH
+            worldHeight = GameConfig.LANDSCAPE_WORLD_HEIGHT
+        } else {
+            worldWidth = GameConfig.WORLD_WIDTH
+            worldHeight = GameConfig.WORLD_HEIGHT
+        }
+        floorTop = worldHeight * GameConfig.FLOOR_TOP_FRACTION
+        doorLeft = worldWidth - GameConfig.DOOR_WIDTH - 30f
+        background = BackgroundRenderer(worldWidth, worldHeight)
+        hud = HudRenderer(worldWidth)
+        overlay = OverlayRenderer(worldWidth, worldHeight)
+        buildLevel(levelIndex)
+        if (phase == GamePhase.PLAYING || phase == GamePhase.PAUSED) {
+            phase = GamePhase.LEVEL_INTRO
+            phaseFrames = 0
+        }
+    }
+
     private fun loadLevel(index: Int) {
+        buildLevel(index)
+        phase = GamePhase.LEVEL_INTRO
+    }
+
+    private fun buildLevel(index: Int) {
         levelIndex = index
         level = Levels.all[index]
 
@@ -198,7 +240,6 @@ class GameEngine(private val highScores: HighScoreStore) {
 
         levelFrames = 0
         phaseFrames = 0
-        phase = GamePhase.LEVEL_INTRO
     }
 
     private fun beginPlay() {
@@ -392,7 +433,13 @@ class GameEngine(private val highScores: HighScoreStore) {
     /** Scales the virtual world onto the actual surface and draws everything. */
     fun draw(canvas: Canvas, viewWidth: Int, viewHeight: Int) {
         canvas.save()
-        canvas.scale(viewWidth / worldWidth, viewHeight / worldHeight)
+        // Outer transform maps the shell/portrait space to the surface; in
+        // keypad mode the world IS that space, in touch mode the landscape
+        // world is placed inside the shell's LCD below.
+        canvas.scale(
+            viewWidth / GameConfig.WORLD_WIDTH,
+            viewHeight / GameConfig.WORLD_HEIGHT
+        )
 
         if (touchControlsEnabled) {
             // Full handheld-console look: shell around the LCD, game inside

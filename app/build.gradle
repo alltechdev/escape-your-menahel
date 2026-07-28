@@ -18,6 +18,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            // Signed with the auto-generated debug key so CI produces an
+            // installable release APK without needing keystore secrets
+            signingConfig signingConfigs.debug
         }
     }
     compileOptions {

@@ -22,10 +22,11 @@ between you and the 4:15 bus to freedom.
 - **Rugelach collectibles**, score with time bonuses, 3 lives (displayed as
   black hats, naturally), and a persistent high score
 - **Pause = Mincha Break**
-- **ESCAPE BOY™ mode** — on touchscreen-only devices the game becomes a full
-  retro handheld: game screen in the LCD up top, d-pad + A/B + START on the
-  body below ("DOT MATRIX WITH MUSSAR"). Never shown when a physical
-  keypad/d-pad is present — keypad phones get the full screen
+- **ESCAPE BOY COLOR™ mode** — on touchscreen-only devices the game becomes
+  a full retro handheld in classic yellow: a wide landscape LCD up top,
+  d-pad + A/B + SELECT/START on the body below. The level re-flows into a
+  landscape world for the LCD. Never shown when a physical keypad/d-pad is
+  present — keypad phones keep the fullscreen portrait game
 
 ## Controls (keypad / d-pad)
 
@@ -43,12 +44,13 @@ shoots felafel, **START** pauses, and any tap confirms menus.
 ## Building
 
 ```bash
-./gradlew assembleDebug
+./gradlew assembleRelease
 ```
 
-The APK lands in `app/build/outputs/apk/debug/`. CI builds it automatically on
-every push (see `.github/workflows/android-ci.yml`) and uploads it as the
-`escape-your-menahel-debug` artifact.
+The APK lands in `app/build/outputs/apk/release/`. CI builds it automatically
+on every push (see `.github/workflows/android-ci.yml`) and uploads it as the
+`escape-your-menahel-release` artifact (signed with the debug key so it
+installs directly).
 
 ## Architecture
 

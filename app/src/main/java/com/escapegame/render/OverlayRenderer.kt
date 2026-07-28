@@ -5,22 +5,22 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
-import com.escapegame.core.GameConfig
 import com.escapegame.levels.Levels
 import com.escapegame.model.LevelDefinition
 
 /**
  * Full-screen overlay states: title screen, level intro cards, pause
- * ("mincha break"), game over, and victory. All d-pad driven: CENTER/5/OK is
- * always the confirm button.
+ * ("mincha break"), game over, and victory. Construct with the active
+ * world's dimensions; landscape (LCD) worlds get a tighter layout.
+ * CENTER/5/OK — or any tap in touch mode — is always the confirm button.
  */
-class OverlayRenderer {
+class OverlayRenderer(private val w: Float, private val h: Float) {
 
     /** When true, prompts say "tap" instead of naming keypad keys. */
     var touchMode = false
 
-    private val w = GameConfig.WORLD_WIDTH
-    private val h = GameConfig.WORLD_HEIGHT
+    /** Landscape LCD world: less vertical room, so trim the layout. */
+    private val compact = w > h
 
     private val dimPaint = Paint().apply { color = Color.argb(205, 0, 0, 0); style = Paint.Style.FILL }
     private val cardPaint = Paint().apply { color = Color.argb(235, 25, 25, 35); style = Paint.Style.FILL }
@@ -68,6 +68,24 @@ class OverlayRenderer {
     fun drawIntro(canvas: Canvas, highScore: Int) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
 
+        if (compact) {
+            canvas.drawText("ESCAPE YOUR MENAHEL!", w / 2, h * 0.16f, titlePaint)
+            canvas.drawText("You left the beis medrash early. He saw.", w / 2, h * 0.27f, bodyPaint)
+
+            var y = h * 0.40f
+            val lh = 46f
+            canvas.drawText("D-pad — move  ·  B — jump (x2 = double)", w / 2, y, bodyPaint); y += lh
+            canvas.drawText("A — run + shoot felafel", w / 2, y, bodyPaint); y += lh
+            canvas.drawText("START — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.4f
+            canvas.drawText("Grab rugelach. 12 levels to the 4:15 bus.", w / 2, y, bodyPaint)
+
+            if (highScore > 0) {
+                canvas.drawText("Best escape so far: $highScore", w / 2, h * 0.76f, bodyPaint)
+            }
+            canvas.drawText(confirmPrompt("start"), w / 2, h * 0.87f, accentPaint)
+            return
+        }
+
         canvas.drawText("ESCAPE YOUR", w / 2, h * 0.13f, titlePaint)
         canvas.drawText("MENAHEL!", w / 2, h * 0.18f, titlePaint)
         canvas.drawText("The Yeshiva Breakout", w / 2, h * 0.225f, bodyPaint)
@@ -77,19 +95,11 @@ class OverlayRenderer {
         canvas.drawText("You left the beis medrash early.", w / 2, y, bodyPaint); y += lh
         canvas.drawText("He saw. He ALWAYS sees.", w / 2, y, bodyPaint); y += lh * 1.8f
 
-        if (touchMode) {
-            canvas.drawText("TOUCH CONTROLS", w / 2, y, accentPaint); y += lh * 1.2f
-            canvas.drawText("D-pad — move · ▲ — jump", w / 2, y, bodyPaint); y += lh
-            canvas.drawText("B — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
-            canvas.drawText("A — run + shoot felafel", w / 2, y, bodyPaint); y += lh
-            canvas.drawText("START — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.8f
-        } else {
-            canvas.drawText("KEYPAD / D-PAD CONTROLS", w / 2, y, accentPaint); y += lh * 1.2f
-            canvas.drawText("4 / 6  or  LEFT / RIGHT — move", w / 2, y, bodyPaint); y += lh
-            canvas.drawText("2  or  UP — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
-            canvas.drawText("5  or  OK — run + shoot felafel", w / 2, y, bodyPaint); y += lh
-            canvas.drawText("P / MENU — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.8f
-        }
+        canvas.drawText("KEYPAD / D-PAD CONTROLS", w / 2, y, accentPaint); y += lh * 1.2f
+        canvas.drawText("4 / 6  or  LEFT / RIGHT — move", w / 2, y, bodyPaint); y += lh
+        canvas.drawText("2  or  UP — jump (twice = double jump)", w / 2, y, bodyPaint); y += lh
+        canvas.drawText("5  or  OK — run + shoot felafel", w / 2, y, bodyPaint); y += lh
+        canvas.drawText("P / MENU — mincha break (pause)", w / 2, y, bodyPaint); y += lh * 1.8f
 
         canvas.drawText("Grab rugelach. Chap the power-ups.", w / 2, y, bodyPaint); y += lh
         canvas.drawText("12 levels between you and the 4:15 bus.", w / 2, y, bodyPaint); y += lh * 1.6f
@@ -104,14 +114,20 @@ class OverlayRenderer {
 
     fun drawLevelIntro(canvas: Canvas, level: LevelDefinition) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
-        cardRect.set(w * 0.08f, h * 0.32f, w * 0.92f, h * 0.62f)
+        if (compact) {
+            cardRect.set(w * 0.12f, h * 0.24f, w * 0.88f, h * 0.76f)
+        } else {
+            cardRect.set(w * 0.08f, h * 0.32f, w * 0.92f, h * 0.62f)
+        }
         canvas.drawRoundRect(cardRect, 24f, 24f, cardPaint)
         canvas.drawRoundRect(cardRect, 24f, 24f, cardStrokePaint)
 
-        canvas.drawText("Level ${level.number} of ${Levels.all.size}", w / 2, h * 0.385f, bodyPaint)
-        canvas.drawText(level.name, w / 2, h * 0.44f, headerPaint)
-        drawWrapped(canvas, level.quip, w / 2, h * 0.50f, w * 0.72f)
-        canvas.drawText(confirmPrompt("go"), w / 2, h * 0.595f, accentPaint)
+        val top = cardRect.top
+        val height = cardRect.height()
+        canvas.drawText("Level ${level.number} of ${Levels.all.size}", w / 2, top + height * 0.18f, bodyPaint)
+        canvas.drawText(level.name, w / 2, top + height * 0.36f, headerPaint)
+        drawWrapped(canvas, level.quip, w / 2, top + height * 0.55f, cardRect.width() * 0.86f)
+        canvas.drawText(confirmPrompt("go"), w / 2, cardRect.bottom - height * 0.1f, accentPaint)
     }
 
     fun drawPaused(canvas: Canvas) {
@@ -123,38 +139,41 @@ class OverlayRenderer {
 
     fun drawGameOver(canvas: Canvas, line: String, score: Int, highScore: Int, isNewBest: Boolean) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
-        canvas.drawText("CAUGHT!", w / 2, h * 0.35f, redPaint)
+        canvas.drawText("CAUGHT!", w / 2, h * 0.32f, redPaint)
         drawWrapped(canvas, line, w / 2, h * 0.42f, w * 0.8f)
-        canvas.drawText("Score: $score", w / 2, h * 0.52f, bodyPaint)
+        canvas.drawText("Score: $score", w / 2, h * 0.55f, bodyPaint)
         if (isNewBest) {
-            canvas.drawText("NEW RECORD! Mamash a kiddush!", w / 2, h * 0.565f, accentPaint)
+            canvas.drawText("NEW RECORD! Mamash a kiddush!", w / 2, h * 0.61f, accentPaint)
         } else {
-            canvas.drawText("Best: $highScore", w / 2, h * 0.565f, bodyPaint)
+            canvas.drawText("Best: $highScore", w / 2, h * 0.61f, bodyPaint)
         }
-        canvas.drawText(confirmPrompt("try again"), w / 2, h * 0.66f, accentPaint)
+        canvas.drawText(confirmPrompt("try again"), w / 2, h * 0.72f, accentPaint)
     }
 
     fun drawVictory(canvas: Canvas, score: Int, highScore: Int, isNewBest: Boolean) {
         canvas.drawRect(0f, 0f, w, h, dimPaint)
-        canvas.drawText("BARUCH", w / 2, h * 0.24f, titlePaint)
-        canvas.drawText("SHEPTARANI!", w / 2, h * 0.29f, titlePaint)
+        if (compact) {
+            canvas.drawText("BARUCH SHEPTARANI!", w / 2, h * 0.2f, titlePaint)
+        } else {
+            canvas.drawText("BARUCH", w / 2, h * 0.16f, titlePaint)
+            canvas.drawText("SHEPTARANI!", w / 2, h * 0.21f, titlePaint)
+        }
 
-        var y = h * 0.38f
+        var y = h * 0.32f
+        val lh = if (compact) 46f else 52f
         for (line in Levels.victoryLines) {
             canvas.drawText(line, w / 2, y, bodyPaint)
-            y += 52f
+            y += lh
         }
 
-        y += 30f
-        canvas.drawText("Final score: $score", w / 2, y, headerPaint)
-        y += 60f
+        canvas.drawText("Final score: $score", w / 2, h * 0.62f, headerPaint)
         if (isNewBest) {
-            canvas.drawText("NEW RECORD! Tell your chavrusa!", w / 2, y, accentPaint)
+            canvas.drawText("NEW RECORD! Tell your chavrusa!", w / 2, h * 0.69f, accentPaint)
         } else {
-            canvas.drawText("Best: $highScore", w / 2, y, bodyPaint)
+            canvas.drawText("Best: $highScore", w / 2, h * 0.69f, bodyPaint)
         }
 
-        canvas.drawText(confirmPrompt("start another zman"), w / 2, h * 0.75f, accentPaint)
+        canvas.drawText(confirmPrompt("start another zman"), w / 2, h * 0.8f, accentPaint)
     }
 
     /** "Press 5 / OK to X" on keypads, "Tap to X" on touchscreens. */

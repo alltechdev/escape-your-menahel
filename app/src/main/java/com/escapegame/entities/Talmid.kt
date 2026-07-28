@@ -107,13 +107,13 @@ class Talmid {
     fun moveLeft(isRunning: Boolean) {
         running = isRunning
         facingRight = false
-        velocityX = kotlin.math.max(velocityX - 1.5f, -currentSpeed(isRunning))
+        velocityX = kotlin.math.max(velocityX - 2.2f, -currentSpeed(isRunning))
     }
 
     fun moveRight(isRunning: Boolean) {
         running = isRunning
         facingRight = true
-        velocityX = kotlin.math.min(velocityX + 1.5f, currentSpeed(isRunning))
+        velocityX = kotlin.math.min(velocityX + 2.2f, currentSpeed(isRunning))
     }
 
     fun stopMoving() {
