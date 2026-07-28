@@ -176,23 +176,47 @@ class GameView(context: Context, private val engine: GameEngine) :
             return
         }
         if (engine.phase == GamePhase.DIFFICULTY_SELECT || engine.phase == GamePhase.MODE_SELECT) {
-            // Menu taps need game-world coordinates (inside the LCD in
-            // touch mode, the whole screen otherwise)
-            val shellX = worldX(event, pointerIndex)
-            val shellY = worldY(event, pointerIndex)
-            if (touchMode) {
-                engine.onMenuTap(
-                    (shellX - TouchGamepadLayout.screenOffsetX) / TouchGamepadLayout.screenScale,
-                    (shellY - TouchGamepadLayout.screenOffsetY) / TouchGamepadLayout.screenScale
-                )
-            } else {
-                engine.onMenuTap(shellX, shellY)
+            when (control) {
+                // The gamepad navigates the menu; it never confirms
+                TouchGamepadLayout.Control.DPAD_UP -> engine.onJump()
+                TouchGamepadLayout.Control.DPAD_LEFT -> {
+                    engine.onLeft(true); engine.onLeft(false)
+                }
+                TouchGamepadLayout.Control.DPAD_RIGHT -> {
+                    engine.onRight(true); engine.onRight(false)
+                }
+                TouchGamepadLayout.Control.BUTTON_B -> engine.onMenuDown()
+                // A and START confirm the current selection
+                TouchGamepadLayout.Control.BUTTON_A,
+                TouchGamepadLayout.Control.START -> engine.onActionDown()
+                TouchGamepadLayout.Control.SELECT -> Unit
+                else -> {
+                    // A tap on the menu itself: convert to game-world
+                    // coordinates (inside the LCD in touch mode)
+                    val shellX = worldX(event, pointerIndex)
+                    val shellY = worldY(event, pointerIndex)
+                    if (touchMode) {
+                        engine.onMenuTap(
+                            (shellX - TouchGamepadLayout.screenOffsetX) / TouchGamepadLayout.screenScale,
+                            (shellY - TouchGamepadLayout.screenOffsetY) / TouchGamepadLayout.screenScale
+                        )
+                    } else {
+                        engine.onMenuTap(shellX, shellY)
+                    }
+                }
             }
             return
         }
         if (engine.phase != GamePhase.PLAYING) {
-            // Overlay screens: any other tap is the confirm button
-            engine.onActionDown()
+            // Overlay screens: taps confirm, EXCEPT on the d-pad or B - a
+            // thumb resting on movement controls must never skip a screen
+            when (control) {
+                TouchGamepadLayout.Control.DPAD_LEFT,
+                TouchGamepadLayout.Control.DPAD_RIGHT,
+                TouchGamepadLayout.Control.DPAD_UP,
+                TouchGamepadLayout.Control.BUTTON_B -> Unit
+                else -> engine.onActionDown()
+            }
             return
         }
         when (control) {

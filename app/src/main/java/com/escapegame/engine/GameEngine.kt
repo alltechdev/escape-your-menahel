@@ -252,21 +252,29 @@ class GameEngine(
         else -> "Leaderboard code: ${submitCode()} (see README)"
     }
 
-    /** A tap on a menu screen (world coordinates). */
+    /**
+     * A tap on a menu screen (world coordinates). Only a tap that actually
+     * lands on a row selects and confirms it — misses do nothing, so stray
+     * taps (e.g. on the shell) can't skip a menu.
+     */
     fun onMenuTap(x: Float, y: Float) {
         when (phase) {
             GamePhase.DIFFICULTY_SELECT -> {
                 val row = overlay.difficultyRowAt(x, y)
-                if (row >= 0) difficultySelection = row
-                difficulty = Difficulty.values()[difficultySelection]
-                prefs.setDifficultyName(difficulty.name)
-                phase = GamePhase.MODE_SELECT
-                phaseFrames = 0
+                if (row >= 0) {
+                    difficultySelection = row
+                    difficulty = Difficulty.values()[difficultySelection]
+                    prefs.setDifficultyName(difficulty.name)
+                    phase = GamePhase.MODE_SELECT
+                    phaseFrames = 0
+                }
             }
             GamePhase.MODE_SELECT -> {
                 val row = overlay.modeRowAt(x, y)
-                if (row >= 0) modeSelection = row
-                confirmMode()
+                if (row >= 0) {
+                    modeSelection = row
+                    confirmMode()
+                }
             }
             else -> Unit
         }
