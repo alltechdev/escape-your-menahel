@@ -543,7 +543,11 @@ object Levels {
         "Not in MY yeshiva!",
         "Who gave you a heter?!",
         "That felafel comes out of recess!",
-        "I know your chavrusa's father!"
+        "I know your chavrusa's father!",
+        "We have a SHIDDUCH to think about!",
+        "Is that a CHAZAKA?! Assur!",
+        "The Candy Man can't save you!",
+        "You'll be shoveling the eruv path for this!"
     )
 
     /** Random headline for the game-over screen. */
@@ -651,7 +655,10 @@ object Levels {
         "PA: Reminder - the elevator is still fleishig.",
         "PA: The Menahel requests you stop running. Immediately.",
         "PA: Supper is potato. Just potato.",
-        "PA: The coffee room is closed for chometz. It is Cheshvan."
+        "PA: The coffee room is closed for chometz. It is Cheshvan.",
+        "PA: The Candy Man was spotted. This is not a drill.",
+        "PA: Whoever is playing music in the beis medrash - nice niggun.",
+        "PA: Tonight's shiur: 'Running: A Halachic Analysis.'"
     )
 
     /** Lines for the victory screen, in display order. */
