@@ -880,7 +880,9 @@ class GameEngine(
                 floatingTextPaint.color = t.color
                 canvas.drawText(t.text, t.x, t.y, floatingTextPaint)
             }
-            if (Modifier.DARK in level.modifiers && phase == GamePhase.PLAYING) {
+            if (Modifier.DARK in level.modifiers &&
+                (phase == GamePhase.PLAYING || phase == GamePhase.PAUSED)
+            ) {
                 // Everything outside the talmid's little circle of light
                 canvas.drawCircle(
                     talmid.centerX, talmid.centerY,
